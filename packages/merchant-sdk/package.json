@@ -1,0 +1,63 @@
+{
+  "name": "@morphcredit/merchant-sdk",
+  "version": "0.1.0",
+  "description": "MorphCredit Merchant SDK for BNPL integration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./button": {
+      "types": "./dist/button.d.ts",
+      "import": "./dist/button.js",
+      "require": "./dist/button.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ethers": "^6.8.1",
+    "viem": "^1.21.4",
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2",
+    "tsup": "^8.0.1",
+    "vitest": "^1.0.4"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0"
+  },
+  "keywords": [
+    "morphcredit",
+    "bnpl",
+    "buy-now-pay-later",
+    "defi",
+    "ethereum",
+    "react",
+    "sdk"
+  ],
+  "author": "MorphCredit Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okwareddevnest/MorphCredit.git",
+    "directory": "packages/merchant-sdk"
+  }
+} 
