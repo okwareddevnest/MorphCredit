@@ -1,0 +1,47 @@
+{
+  "name": "@morphcredit/contracts",
+  "version": "0.1.0",
+  "description": "MorphCredit MVP Smart Contracts",
+  "main": "index.js",
+  "scripts": {
+    "build": "hardhat compile",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:coverage": "hardhat coverage",
+    "lint": "solhint 'contracts/**/*.sol'",
+    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
+    "deploy:local": "hardhat run scripts/01_oracle.ts --network localhost",
+    "deploy:testnet": "hardhat run scripts/01_oracle.ts --network morph-testnet",
+    "verify": "hardhat verify",
+    "clean": "hardhat clean",
+    "node": "hardhat node",
+    "console": "hardhat console"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0",
+    "dotenv": "^17.2.1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@typechain/ethers-v6": "^0.4.0",
+    "@typechain/hardhat": "^9.0.0",
+    "ethers": "^6.8.0",
+    "hardhat": "^2.19.0",
+    "hardhat-gas-reporter": "^1.0.9",
+    "solhint": "^4.0.0",
+    "solidity-coverage": "^0.8.5",
+    "typescript": "^5.2.0"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "defi",
+    "bnpl",
+    "credit",
+    "morphcredit"
+  ],
+  "author": "MorphCredit Team",
+  "license": "MIT"
+}
