@@ -251,6 +251,29 @@ app.get('/avatar/:address', async (req: Request, res: Response) => {
   }
 });
 
+// Optional endpoint: dynamically grant FACTORY_ROLE to a wallet (admin key only)
+app.post('/admin/grant-factory-role', async (req: Request, res: Response) => {
+  try {
+    if (!config.bnplFactoryAddress || !config.bnplAdminPrivKey) {
+      return res.status(400).json({ success: false, error: 'Factory admin not configured' });
+    }
+    const { address } = req.body as { address?: string };
+    if (!address) return res.status(400).json({ success: false, error: 'Missing address' });
+    const provider = new ethers.JsonRpcProvider(config.morphRpc);
+    const admin = new ethers.Wallet(config.bnplAdminPrivKey, provider);
+    const abi = ['function FACTORY_ROLE() view returns (bytes32)','function grantRole(bytes32,address)','function hasRole(bytes32,address) view returns (bool)'];
+    const fac: any = new ethers.Contract(config.bnplFactoryAddress, abi, admin);
+    const role = await fac['FACTORY_ROLE']();
+    const has = await fac['hasRole'](role, address);
+    if (has) return res.json({ success: true, data: { granted: false, already: true } });
+    const tx = await fac['grantRole'](role, address);
+    const receipt = await tx.wait(1);
+    return res.json({ success: true, data: { granted: true, txHash: tx.hash, blockNumber: receipt?.blockNumber } });
+  } catch (e: any) {
+    return res.status(500).json({ success: false, error: e?.message || 'Failed to grant role' });
+  }
+});
+
 // Minimal WebAuthn-like endpoints (challenge storage only; actual verification would require RP config)
 app.post('/webauthn/challenge/:address', async (req: Request, res: Response) => {
   try {

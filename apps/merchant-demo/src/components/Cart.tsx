@@ -111,9 +111,31 @@ export const Cart: React.FC<CartProps> = ({
           return;
         }
         if (!hasRole) {
-          alert('This wallet is not authorized to create agreements (FACTORY_ROLE missing). Use an authorized merchant wallet.');
-          setIsPaying(false);
-          return;
+          const confirm = window.confirm('This wallet is not authorized (FACTORY_ROLE missing). Grant role now?');
+          if (!confirm) {
+            setIsPaying(false);
+            return;
+          }
+          const base = (window as any).__MORPHCREDIT_SCORING_URL__ || 'https://morphcredit.onrender.com';
+          const resp = await fetch(`${base.replace(/\/$/, '')}/admin/grant-factory-role`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address }),
+          });
+          const json = await resp.json().catch(() => ({} as any));
+          if (!resp.ok || !json?.success) {
+            alert(json?.error || 'Failed to grant merchant role.');
+            setIsPaying(false);
+            return;
+          }
+          // brief delay then re-check
+          await new Promise((r) => setTimeout(r, 1500));
+          const updated = await reader.hasRole(role, address).catch(() => false);
+          if (!updated) {
+            alert('Role grant did not confirm yet. Please try again in a few seconds.');
+            setIsPaying(false);
+            return;
+          }
         }
       } catch {}
       sdk.updateConfig({
