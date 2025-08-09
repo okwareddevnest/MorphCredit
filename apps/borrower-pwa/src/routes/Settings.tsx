@@ -4,14 +4,12 @@ import {
   Settings, 
   Shield, 
   Bell, 
-  CreditCard, 
   Globe, 
   Database,
   Download,
   Trash2,
   AlertTriangle,
   CheckCircle,
-  Info
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
 import { getUserProfile, saveUserProfile } from '../lib/api';

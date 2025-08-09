@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Calendar, DollarSign, CreditCard, ToggleLeft, ToggleRight } from 'lucide-react';
 
 interface BNPLAgreement {
@@ -30,14 +30,14 @@ export const RepayList: React.FC<RepayListProps> = ({
     return new Date(timestamp * 1000).toLocaleDateString();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-green-600';
-      case 'completed': return 'text-blue-600';
-      case 'overdue': return 'text-red-600';
-      default: return 'text-gray-600';
-    }
-  };
+  // const getStatusColor = (status: string) => {
+  //   switch (status) {
+  //     case 'active': return 'text-green-600';
+  //     case 'completed': return 'text-blue-600';
+  //     case 'overdue': return 'text-red-600';
+  //     default: return 'text-gray-600';
+  //   }
+  // };
 
   const getStatusBadge = (status: string) => {
     const colors = {

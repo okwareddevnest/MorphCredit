@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import { 
   CreditCard, 
-  Calendar, 
-  DollarSign, 
   TrendingUp, 
   AlertCircle,
   CheckCircle,
@@ -37,14 +35,14 @@ export const Agreements: React.FC = () => {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'overdue'>('all');
 
-  const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
-    const newAlert: Alert = {
-      ...alert,
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-    };
-    setAlerts(prev => [...prev, newAlert]);
-  };
+  // const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
+  //   const newAlert: Alert = {
+  //     ...alert,
+  //     id: Date.now().toString(),
+  //     timestamp: Date.now(),
+  //   };
+  //   setAlerts(prev => [...prev, newAlert]);
+  // };
 
   const dismissAlert = (alertId: string) => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));

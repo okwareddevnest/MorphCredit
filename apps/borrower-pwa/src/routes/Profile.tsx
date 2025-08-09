@@ -7,11 +7,8 @@ import {
   CreditCard, 
   Settings, 
   Key,
-  Eye,
-  EyeOff,
   Save,
   Edit3,
-  CheckCircle,
   AlertCircle
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
@@ -81,9 +78,22 @@ export const Profile: React.FC = () => {
       setFormData({
         email: p.email || '',
         phone: p.phone || '',
-        notifications: p.notifications || { email: true, push: true, sms: false },
-        security: p.security || { twoFactor: false, autoRepay: true, biometric: false },
-        preferences: p.preferences || { currency: 'USD', language: 'en', theme: 'dark', timezone: 'UTC' }
+        notifications: {
+          email: p.notifications?.email ?? true,
+          push: p.notifications?.push ?? true,
+          sms: p.notifications?.sms ?? false,
+        },
+        security: {
+          twoFactor: p.security?.twoFactor ?? false,
+          autoRepay: p.security?.autoRepay ?? true,
+          biometric: p.security?.biometric ?? false,
+        },
+        preferences: {
+          currency: p.preferences?.currency ?? 'USD',
+          language: p.preferences?.language ?? 'en',
+          theme: p.preferences?.theme ?? 'dark',
+          timezone: p.preferences?.timezone ?? 'UTC',
+        }
       });
     }).catch(() => {});
   }, [address]);

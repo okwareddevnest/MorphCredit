@@ -7,23 +7,20 @@ const MORPH_RPC_URL = import.meta.env.VITE_MORPH_RPC_URL || 'https://rpc-holesky
 const MORPH_EXPLORER = import.meta.env.VITE_EXPLORER_URL || 'https://explorer-holesky.morphl2.io';
 const PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '467852179c0864c56b3ea993ba72b05b';
 
-// Full chain definition expected by AppKit
-const morphHolesky = {
-  id: MORPH_CHAIN_ID,
-  name: 'Morph Holesky',
-  nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-  rpcUrls: { default: { http: [MORPH_RPC_URL] } },
-  blockExplorers: { default: { name: 'Morph Explorer', url: MORPH_EXPLORER } },
-  testnet: true,
-} as const;
-
-export const networks = [morphHolesky];
+// Wagmi/viem-style chain object
+export const networks = [
+  {
+    id: MORPH_CHAIN_ID,
+    name: 'Morph Holesky',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: { default: { http: [MORPH_RPC_URL] } },
+    blockExplorers: { default: { name: 'Morph Explorer', url: MORPH_EXPLORER } },
+    testnet: true,
+  },
+] as any;
 
 // Create Wagmi adapter and config (wagmi v2)
-export const wagmiAdapter = new WagmiAdapter({
-  projectId: PROJECT_ID,
-  networks,
-});
+export const wagmiAdapter = new WagmiAdapter({ projectId: PROJECT_ID, networks });
 
 export const config = wagmiAdapter.wagmiConfig;
 
