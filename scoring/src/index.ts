@@ -222,7 +222,8 @@ app.post('/user/:address/avatar', upload.single('avatar'), async (req: Request, 
       uploadStream.on('error', reject);
     });
 
-    const publicUrl = `${req.protocol}://${req.get('host')}/avatar/${addr.toLowerCase()}`;
+    const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'https';
+    const publicUrl = `${proto}://${req.get('host')}/avatar/${addr.toLowerCase()}`;
     const saved = await updateUser(addr, { avatarUrl: publicUrl });
     return res.json({ success: true, data: saved });
   } catch (e) {

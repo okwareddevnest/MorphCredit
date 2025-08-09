@@ -158,4 +158,50 @@ sequenceDiagram
   D-->>U: Confirmation + Explorer link
 ```
 
+### End‑to‑end demo flow (fresh wallet)
 
+- Pre‑reqs
+  - Switch wallet to Morph Holesky (chainId 2810).
+  - Have a little test ETH for gas (Holesky → Morph bridge).
+  - URLs: 
+
+    *-* Borrower PWA: [morphcredit-borrower.vercel.app](https://morphcredit-borrower.vercel.app/)
+   
+    *-* Merchant Demo: [morphcredit-merchant-demo.vercel.app](https://morphcredit-merchant-demo.vercel.app/)
+
+### 1) Borrower: set up and get a score
+1. Open the Borrower app: [morphcredit-borrower.vercel.app](https://morphcredit-borrower.vercel.app/) and connect wallet.
+2. Profile: set username (optional), upload avatar.
+3. Credit Score page:
+   - Click “Request Score”. The app:
+     - Computes your score off‑chain.
+     - Immediately publishes the signed score to the on‑chain ScoreOracle (no extra button).
+     - Shows a success toast with a tx link.
+4. Home updates with your live score and tier.
+
+### 2) Merchant: create a BNPL agreement
+1. Open the Merchant Demo: [morphcredit-merchant-demo.vercel.app](https://morphcredit-merchant-demo.vercel.app/) and connect wallet.
+2. Add any item(s) to cart → click “Pay with MorphCredit”.
+3. Offers appear (APR/schedule based on your tier). Pick a plan.
+4. Sign the on‑chain tx. You’ll see an order confirmation with a Morph explorer link.
+   - This deploys a BNPLAgreement to your address and funds the merchant.
+
+### 3) Borrower: view agreement and repay
+1. Back in the Borrower app:
+   - Agreements tab: your new agreement is listed.
+   - Repayments tab: shows “Pay next” when an installment is due.
+2. Click “Pay next”:
+   - First time only, you’ll approve mUSDC to the agreement (one tx).
+   - Then you’ll sign the repay tx.
+   - You’ll get a success toast with an explorer link; counts update (Paid/Remaining).
+   - If you see “insufficient balance,” acquire test mUSDC, then retry (I can wire a tiny faucet if you want).
+
+### 4) Optional PWA install (mobile/desktop)
+- Click “Install App” (top‑right). On iOS Safari, use Share → “Add to Home Screen”.
+
+Notes
+- “Publish to Oracle” is automatic inside “Request Score”; if you prefer a separate button, say “split score buttons” and I’ll add it.
+- Deep link/refresh issues: hard‑refresh once after deploy (service worker updated).
+- Use the health endpoint to confirm the API is live before demos: https://morphcredit.onrender.com/health
+
+Links referenced: [Borrower PWA](https://morphcredit-borrower.vercel.app/), [Merchant Demo](https://morphcredit-merchant-demo.vercel.app/).
