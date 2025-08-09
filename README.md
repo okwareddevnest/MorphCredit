@@ -12,7 +12,7 @@ flowchart LR
     M[Merchant Demo]
   end
   subgraph SDK
-    S[@morphcredit/merchant-sdk]
+    S["@morphcredit/merchant-sdk"]
   end
   subgraph Backend
     SC[(Scoring Service)]
