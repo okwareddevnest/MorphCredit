@@ -26,11 +26,11 @@ export interface FeatureExtractionResult {
  */
 export class FeatureExtractor {
   private provider: ethers.JsonRpcProvider;
-  private stableToken?: `0x${string}`;
+  private stableToken: `0x${string}` | undefined;
 
   constructor(rpcUrl: string) {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
-    this.stableToken = (config as any).stableTokenAddress as `0x${string}` | undefined;
+    this.stableToken = ((config as any).stableTokenAddress ?? undefined) as `0x${string}` | undefined;
   }
 
   /**
@@ -93,8 +93,8 @@ export class FeatureExtractor {
       ...(await this.provider.getLogs(toFilter)),
     ];
     if (logs.length === 0) return 0;
-    const earliest = logs.reduce((min, l) => (l.blockNumber < min.blockNumber ? l : min), logs[0]);
-    const block = await this.provider.getBlock(earliest.blockHash as string);
+    const earliest = logs.reduce((min, l) => (min && l.blockNumber < min.blockNumber ? l : (min || l)), undefined as any);
+    const block = earliest ? await this.provider.getBlock(earliest.blockHash as string) : null;
     return block?.timestamp ?? 0;
   }
 
@@ -114,8 +114,8 @@ export class FeatureExtractor {
       ...(await this.provider.getLogs(filterOut)),
     ];
     if (logs.length === 0) return 0;
-    const latest = logs.reduce((max, l) => (l.blockNumber > max.blockNumber ? l : max), logs[0]);
-    const block = await this.provider.getBlock(latest.blockHash as string);
+    const latest = logs.reduce((max, l) => (max && l.blockNumber > max.blockNumber ? l : (max || l)), undefined as any);
+    const block = latest ? await this.provider.getBlock(latest.blockHash as string) : null;
     return block?.timestamp ?? 0;
   }
 
@@ -145,7 +145,7 @@ export class FeatureExtractor {
         this.provider.getBlock(blockNumber),
         this.provider.getBalance(address, blockNumber),
       ]);
-      if (block) history.push({ timestamp: block.timestamp, balance });
+      if (block) history.push({ timestamp: block.timestamp ?? Math.floor(Date.now()/1000), balance });
     }
     return history;
   }
@@ -189,7 +189,6 @@ export class FeatureExtractor {
     const addressAge = data.firstTx === 0 ? 0 : Math.max(0, Math.floor((now - data.firstTx) / (24 * 60 * 60)));
     
     // Active days in last 90 days
-    const days90 = 90 * 24 * 60 * 60;
     const activeDays = data.lastTx === 0 ? 0 : Math.min(90, Math.floor((now - data.lastTx) / (24 * 60 * 60)));
     
     // Net inflow in last 30 days

@@ -137,6 +137,7 @@ app.post('/score', async (req: Request, res: Response) => {
         },
       },
     });
+    return;
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       logger.warn('Invalid request data', { errors: error.errors });
@@ -153,6 +154,7 @@ app.post('/score', async (req: Request, res: Response) => {
       success: false,
       error: 'Internal server error',
     });
+    return;
   }
 });
 
@@ -255,7 +257,7 @@ app.post('/verify', async (req: Request, res: Response) => {
         },
       },
     });
-
+    return;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error('Verification error', { error: message });
@@ -263,6 +265,7 @@ app.post('/verify', async (req: Request, res: Response) => {
       success: false,
       error: 'Internal server error',
     });
+    return;
   }
 });
 

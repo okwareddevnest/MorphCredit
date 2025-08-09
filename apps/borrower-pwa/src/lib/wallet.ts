@@ -6,9 +6,9 @@ import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
 import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet';
 
 // Morph testnet chain from env
-const MORPH_CHAIN_ID = Number(import.meta.env.VITE_MORPH_CHAIN_ID || 17000);
+const MORPH_CHAIN_ID = Number(import.meta.env.VITE_MORPH_CHAIN_ID || 2810);
 const MORPH_RPC_URL = import.meta.env.VITE_MORPH_RPC_URL || 'https://rpc-testnet.morphl2.io';
-const MORPH_EXPLORER = import.meta.env.VITE_EXPLORER_URL || 'https://explorer-testnet.morphl2.io';
+const MORPH_EXPLORER = import.meta.env.VITE_EXPLORER_URL || 'https://explorer-holesky.morphl2.io';
 
 const morphTestnet: Chain = {
   id: MORPH_CHAIN_ID,

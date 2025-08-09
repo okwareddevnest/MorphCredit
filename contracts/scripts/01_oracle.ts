@@ -13,13 +13,31 @@ async function main() {
 
   // Deploy ScoreOracle
   const ScoreOracle = await ethers.getContractFactory("ScoreOracle");
-  const oracleSigner = deployer.address; // In production, this would be a separate oracle signer
-  const scoreOracle = await ScoreOracle.deploy(oracleSigner, deployer.address);
+  const oracleSignerRaw = process.env.ORACLE_SIGNER || deployer.address; // separate oracle signer recommended
+  let oracleSignerAddr: string;
+  try {
+    oracleSignerAddr = ethers.getAddress(oracleSignerRaw);
+  } catch (e) {
+    console.warn("Invalid ORACLE_SIGNER provided, defaulting to deployer address");
+    oracleSignerAddr = deployer.address;
+  }
+  const adminAddr = ethers.getAddress(deployer.address);
+  const scoreOracle = await ScoreOracle.deploy(oracleSignerAddr, adminAddr);
   await scoreOracle.waitForDeployment();
 
   const scoreOracleAddress = await scoreOracle.getAddress();
   console.log("ScoreOracle deployed to:", scoreOracleAddress);
   console.log("ScoreOracle initialized");
+
+  // Grant ORACLE_ROLE to oracleSigner if not admin
+  const ORACLE_ROLE = await scoreOracle.ORACLE_ROLE();
+  const hasRole = await scoreOracle.hasRole(ORACLE_ROLE, oracleSignerAddr);
+  if (!hasRole) {
+    console.log("Granting ORACLE_ROLE to:", oracleSignerAddr);
+    const txGrant = await scoreOracle.grantRole(ORACLE_ROLE, oracleSignerAddr);
+    await txGrant.wait();
+    console.log("ORACLE_ROLE granted");
+  }
 
   // Create .deploy directory if it doesn't exist
   const deployDir = path.join(__dirname, "..", ".deploy");
@@ -42,7 +60,7 @@ async function main() {
   }
 
   addresses.scoreOracle = scoreOracleAddress;
-  addresses.oracleSigner = oracleSigner;
+  addresses.oracleSigner = oracleSignerAddr;
 
   // Ensure apps/config directory exists
   const configDir = path.dirname(addressesPath);

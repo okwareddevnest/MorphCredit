@@ -30,12 +30,13 @@ const config: HardhatUserConfig = {
     },
     "morph-testnet": {
       url: process.env.MORPH_RPC_URL || process.env.MORPH_RPC || "https://rpc-testnet.morphl2.io",
-      chainId: Number(process.env.MORPH_CHAIN_ID || 17000),
+      chainId: Number(process.env.MORPH_CHAIN_ID || 2810),
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: Number(process.env.MORPH_GAS_PRICE || 2_000_000_000),
     },
     "morph-mainnet": {
-      url: process.env.MORPH_MAINNET_RPC_URL || "https://rpc.morphl2.io",
-      chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2710),
+      url: process.env.MORPH_MAINNET_RPC_URL || "https://rpc-quicknode.morphl2.io",
+      chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2818),
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
@@ -52,17 +53,17 @@ const config: HardhatUserConfig = {
     customChains: [
       {
         network: "morph-testnet",
-        chainId: Number(process.env.MORPH_CHAIN_ID || 17000),
+        chainId: Number(process.env.MORPH_CHAIN_ID || 2810),
         urls: {
-          apiURL: process.env.MORPHSCAN_TESTNET_API || "https://explorer-testnet.morphl2.io/api",
-          browserURL: process.env.MORPHSCAN_TESTNET_BROWSER || "https://explorer-testnet.morphl2.io",
+          apiURL: process.env.MORPHSCAN_TESTNET_API || "https://explorer-holesky-api.morphl2.io/api",
+          browserURL: process.env.MORPHSCAN_TESTNET_BROWSER || "https://explorer-holesky.morphl2.io",
         },
       },
       {
         network: "morph-mainnet",
-        chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2710),
+        chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2818),
         urls: {
-          apiURL: process.env.MORPHSCAN_MAINNET_API || "https://explorer.morphl2.io/api",
+          apiURL: process.env.MORPHSCAN_MAINNET_API || "https://explorer-api.morphl2.io/api",
           browserURL: process.env.MORPHSCAN_MAINNET_BROWSER || "https://explorer.morphl2.io",
         },
       },

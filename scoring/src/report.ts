@@ -106,16 +106,7 @@ export class ReportGenerator {
     return sig;
   }
 
-  /**
-   * Create the message to sign (matches smart contract verification)
-   */
-  private createSignMessage(
-    _address: string,
-    _reportData: Omit<ScoreReport, 'sig'>
-  ): string {
-    // Deprecated: kept for backward compatibility if needed
-    return 'MorphCredit Score Report';
-  }
+  // Note: legacy text message signing removed; packed signing is used instead
 
   /**
    * Verify a score report signature
