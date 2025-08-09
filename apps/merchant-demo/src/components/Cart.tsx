@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
-import { MorphCreditButton } from 'morphcredit-merchant-sdk';
+import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
 import type { TxResult } from 'morphcredit-merchant-sdk';
 
 interface Product {
@@ -37,6 +37,7 @@ export const Cart: React.FC<CartProps> = ({
   onCheckout,
   totalPrice
 }) => {
+  const [isPaying, setIsPaying] = React.useState(false);
   const handleSuccess = (result: TxResult) => {
     const orderData = {
       id: `order-${Date.now()}`,
@@ -52,6 +53,31 @@ export const Cart: React.FC<CartProps> = ({
       timestamp: Date.now()
     };
     onCheckout(orderData);
+  };
+
+  const handleQuickPay = async () => {
+    try {
+      if (isPaying) return;
+      setIsPaying(true);
+      const sdk = new MorphCreditSDK({
+        contracts: {
+          scoreOracle: '0xd9Dc385246308FfBEBdEAc210F4c6B2E26Eb096d',
+          creditRegistry: '0x62179b92bD09Bfc6699646F3394A6595c1E12BB2',
+          lendingPool: '0x22D194Bb22f66731421C5F93163a7DFC05D2Ed5f',
+          bnplFactory: '0x50e43053510E8f25280d335F5c7F30b15CF13965',
+        }
+      }, { enableLogging: true });
+      const address = await sdk.connectWallet();
+      const offers = await sdk.getOffers({ address, amount: totalPrice });
+      if (!offers.length) throw new Error('No offers available');
+      const res = await sdk.createAgreement(offers[0].id);
+      handleSuccess(res);
+    } catch (e) {
+      console.error('Payment failed:', e);
+      alert((e as any)?.message || 'Payment failed');
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -143,26 +169,13 @@ export const Cart: React.FC<CartProps> = ({
             </div>
             
             <div className="space-y-3">
-              {/* MorphCredit Button */}
-              <MorphCreditButton
-                amount={totalPrice}
-                onSuccess={handleSuccess}
-                onError={(error) => {
-                  console.error('Payment failed:', error);
-                }}
-                onOffersLoaded={(offers) => {
-                  console.log('Offers loaded:', offers);
-                }}
-                onWalletConnect={(address) => {
-                  console.log('Wallet connected:', address);
-                }}
-                className="w-full"
-                variant="primary"
-                size="lg"
-                showOffers={true}
+              <button
+                onClick={handleQuickPay}
+                disabled={isPaying}
+                className="w-full py-3 px-4 rounded-lg bg-primary-600 hover:bg-primary-500 text-white disabled:opacity-60"
               >
-                {`Pay $${totalPrice.toLocaleString()} with MorphCredit`}
-              </MorphCreditButton>
+                {isPaying ? 'Processing…' : `Pay $${totalPrice.toLocaleString()} with MorphCredit`}
+              </button>
               
               <button
                 onClick={onClose}
