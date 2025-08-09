@@ -89,33 +89,32 @@ export class ReportGenerator {
     address: string,
     reportData: Omit<ScoreReport, 'sig'>
   ): Promise<string> {
-    // Create the message to sign
-    const message = this.createSignMessage(address, reportData);
-    
-    // Sign the message
-    const signature = await this.signer.signMessage(message);
-    
-    return signature;
+    // Pack and sign as personal_sign matching ScoreOracle verification
+    const packed = ethers.solidityPacked(
+      ['string','address','uint16','uint16','bytes32','uint64'],
+      [
+        'MorphCredit Score Report',
+        address,
+        reportData.score,
+        reportData.pd_bps,
+        reportData.featuresRoot as `0x${string}`,
+        reportData.expiry
+      ]
+    );
+    const hash = ethers.keccak256(packed);
+    const sig = await this.signer.signMessage(ethers.getBytes(hash));
+    return sig;
   }
 
   /**
    * Create the message to sign (matches smart contract verification)
    */
   private createSignMessage(
-    address: string,
-    reportData: Omit<ScoreReport, 'sig'>
+    _address: string,
+    _reportData: Omit<ScoreReport, 'sig'>
   ): string {
-    // Format: "MorphCredit Score Report\nAddress: {address}\nScore: {score}\nPD: {pd_bps}\nFeatures: {featuresRoot}\nExpiry: {expiry}"
-    const message = [
-      'MorphCredit Score Report',
-      `Address: ${address}`,
-      `Score: ${reportData.score}`,
-      `PD: ${reportData.pd_bps}`,
-      `Features: ${reportData.featuresRoot}`,
-      `Expiry: ${reportData.expiry}`,
-    ].join('\n');
-    
-    return message;
+    // Deprecated: kept for backward compatibility if needed
+    return 'MorphCredit Score Report';
   }
 
   /**
@@ -127,18 +126,20 @@ export class ReportGenerator {
     expectedSigner: string
   ): boolean {
     try {
-      // Recreate the message
-      const message = [
-        'MorphCredit Score Report',
-        `Address: ${address}`,
-        `Score: ${report.score}`,
-        `PD: ${report.pd_bps}`,
-        `Features: ${report.featuresRoot}`,
-        `Expiry: ${report.expiry}`,
-      ].join('\n');
-      
-      // Recover the signer
-      const recoveredAddress = ethers.verifyMessage(message, report.sig);
+      // Recreate the packed hash
+      const packed = ethers.solidityPacked(
+        ['string','address','uint16','uint16','bytes32','uint64'],
+        [
+          'MorphCredit Score Report',
+          address,
+          report.score,
+          report.pd_bps,
+          report.featuresRoot as `0x${string}`,
+          report.expiry
+        ]
+      );
+      const hash = ethers.keccak256(packed);
+      const recoveredAddress = ethers.verifyMessage(ethers.getBytes(hash), report.sig);
       
       return recoveredAddress.toLowerCase() === expectedSigner.toLowerCase();
     } catch (error) {

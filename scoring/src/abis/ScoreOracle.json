@@ -1,0 +1,50 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "components": [
+          { "internalType": "uint16", "name": "score", "type": "uint16" },
+          { "internalType": "uint16", "name": "pd_bps", "type": "uint16" },
+          { "internalType": "bytes32", "name": "featuresRoot", "type": "bytes32" },
+          { "internalType": "uint64", "name": "expiry", "type": "uint64" },
+          { "internalType": "bytes", "name": "sig", "type": "bytes" }
+        ],
+        "internalType": "struct ScoreOracle.ScoreReport",
+        "name": "sr",
+        "type": "tuple"
+      }
+    ],
+    "name": "setScore",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "user", "type": "address" }
+    ],
+    "name": "getScore",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "uint16", "name": "score", "type": "uint16" },
+          { "internalType": "uint16", "name": "pd_bps", "type": "uint16" },
+          { "internalType": "bytes32", "name": "featuresRoot", "type": "bytes32" },
+          { "internalType": "uint64", "name": "expiry", "type": "uint64" },
+          { "internalType": "bytes", "name": "sig", "type": "bytes" }
+        ],
+        "internalType": "struct ScoreOracle.ScoreReport",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+

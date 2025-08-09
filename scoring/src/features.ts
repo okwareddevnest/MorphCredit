@@ -26,9 +26,11 @@ export interface FeatureExtractionResult {
  */
 export class FeatureExtractor {
   private provider: ethers.JsonRpcProvider;
+  private stableToken?: `0x${string}`;
 
   constructor(rpcUrl: string) {
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
+    this.stableToken = (config as any).stableTokenAddress as `0x${string}` | undefined;
   }
 
   /**
@@ -70,21 +72,51 @@ export class FeatureExtractor {
    * Get first transaction timestamp
    */
   private async getFirstTransaction(address: string): Promise<number> {
-    // In a real implementation, you'd query a block explorer API or indexer
-    // For now, we'll simulate with a reasonable default
-    const now = Math.floor(Date.now() / 1000);
-    const daysAgo = Math.floor(Math.random() * 365) + 30; // 30-395 days ago
-    return now - (daysAgo * 24 * 60 * 60);
+    // Approximate by earliest stable token Transfer involving address if token configured
+    if (!this.stableToken) return 0;
+    const topicTransfer = ethers.id('Transfer(address,address,uint256)');
+    const padded = ethers.zeroPadValue(address, 32);
+    const fromFilter = {
+      address: this.stableToken,
+      fromBlock: '0x0',
+      toBlock: 'latest',
+      topics: [topicTransfer, padded, null],
+    } as any;
+    const toFilter = {
+      address: this.stableToken,
+      fromBlock: '0x0',
+      toBlock: 'latest',
+      topics: [topicTransfer, null, padded],
+    } as any;
+    const logs = [
+      ...(await this.provider.getLogs(fromFilter)),
+      ...(await this.provider.getLogs(toFilter)),
+    ];
+    if (logs.length === 0) return 0;
+    const earliest = logs.reduce((min, l) => (l.blockNumber < min.blockNumber ? l : min), logs[0]);
+    const block = await this.provider.getBlock(earliest.blockHash as string);
+    return block?.timestamp ?? 0;
   }
 
   /**
    * Get last transaction timestamp
    */
   private async getLastTransaction(address: string): Promise<number> {
-    // In a real implementation, you'd query recent transactions
-    const now = Math.floor(Date.now() / 1000);
-    const daysAgo = Math.floor(Math.random() * 30); // 0-30 days ago
-    return now - (daysAgo * 24 * 60 * 60);
+    if (!this.stableToken) return 0;
+    const topicTransfer = ethers.id('Transfer(address,address,uint256)');
+    const padded = ethers.zeroPadValue(address, 32);
+    const latestBlock = await this.provider.getBlockNumber();
+    const fromBlock = Math.max(0, latestBlock - 200_000); // recent window
+    const filterIn = { address: this.stableToken, fromBlock, toBlock: 'latest', topics: [topicTransfer, null, padded] } as any;
+    const filterOut = { address: this.stableToken, fromBlock, toBlock: 'latest', topics: [topicTransfer, padded, null] } as any;
+    const logs = [
+      ...(await this.provider.getLogs(filterIn)),
+      ...(await this.provider.getLogs(filterOut)),
+    ];
+    if (logs.length === 0) return 0;
+    const latest = logs.reduce((max, l) => (l.blockNumber > max.blockNumber ? l : max), logs[0]);
+    const block = await this.provider.getBlock(latest.blockHash as string);
+    return block?.timestamp ?? 0;
   }
 
   /**
@@ -104,21 +136,17 @@ export class FeatureExtractor {
    * Get balance history over last 90 days
    */
   private async getBalanceHistory(address: string): Promise<Array<{ timestamp: number; balance: bigint }>> {
-    const now = Math.floor(Date.now() / 1000);
-    const days90 = 90 * 24 * 60 * 60;
-    const startTime = now - days90;
-    
-    // In a real implementation, you'd query historical balances
-    // For now, we'll simulate with some realistic data
-    const history: Array<{ timestamp: number; balance: bigint }> = [];
-    const currentBalance = await this.provider.getBalance(address);
-    
-    for (let i = 0; i < 10; i++) {
-      const timestamp = startTime + (i * days90 / 10);
-      const balance = currentBalance + BigInt(Math.floor(Math.random() * 1000000000000000000)); // ±1 ETH
-      history.push({ timestamp, balance });
+    const history: Array<{ timestamp: number; balance: bigint }>= [];
+    const latest = await this.provider.getBlockNumber();
+    const step = Math.max(1, Math.floor(latest / 10));
+    for (let i = 9; i >= 0; i--) {
+      const blockNumber = latest - i * step;
+      const [block, balance] = await Promise.all([
+        this.provider.getBlock(blockNumber),
+        this.provider.getBalance(address, blockNumber),
+      ]);
+      if (block) history.push({ timestamp: block.timestamp, balance });
     }
-    
     return history;
   }
 
@@ -126,20 +154,23 @@ export class FeatureExtractor {
    * Get inflow history over last 30 days
    */
   private async getInflowHistory(address: string): Promise<Array<{ timestamp: number; amount: bigint }>> {
-    const now = Math.floor(Date.now() / 1000);
-    const days30 = 30 * 24 * 60 * 60;
-    const startTime = now - days30;
-    
-    // In a real implementation, you'd query transaction history
-    // For now, we'll simulate with some realistic inflow data
     const history: Array<{ timestamp: number; amount: bigint }> = [];
-    
-    for (let i = 0; i < 5; i++) {
-      const timestamp = startTime + (i * days30 / 5);
-      const amount = BigInt(Math.floor(Math.random() * 1000000000000000000)); // 0-1 ETH
-      history.push({ timestamp, amount });
+    if (!this.stableToken) return history;
+    const topicTransfer = ethers.id('Transfer(address,address,uint256)');
+    const padded = ethers.zeroPadValue(address, 32);
+    const latestBlock = await this.provider.getBlockNumber();
+    const fromBlock = Math.max(0, latestBlock - 200_000);
+    const logs = await this.provider.getLogs({
+      address: this.stableToken,
+      fromBlock,
+      toBlock: 'latest',
+      topics: [topicTransfer, null, padded],
+    } as any);
+    for (const log of logs) {
+      const block = await this.provider.getBlock(log.blockHash as string);
+      const amount = BigInt(log.data);
+      history.push({ timestamp: block?.timestamp ?? 0, amount });
     }
-    
     return history;
   }
 
@@ -154,13 +185,12 @@ export class FeatureExtractor {
     inflowHistory: Array<{ timestamp: number; amount: bigint }>;
   }): AddressFeatures {
     const now = Math.floor(Date.now() / 1000);
-    
-    // Address age in days
-    const addressAge = Math.max(1, Math.floor((now - data.firstTx) / (24 * 60 * 60)));
+    // Address age in days (0 if unknown)
+    const addressAge = data.firstTx === 0 ? 0 : Math.max(0, Math.floor((now - data.firstTx) / (24 * 60 * 60)));
     
     // Active days in last 90 days
     const days90 = 90 * 24 * 60 * 60;
-    const activeDays = Math.min(90, Math.floor((now - data.lastTx) / (24 * 60 * 60)));
+    const activeDays = data.lastTx === 0 ? 0 : Math.min(90, Math.floor((now - data.lastTx) / (24 * 60 * 60)));
     
     // Net inflow in last 30 days
     const days30 = 30 * 24 * 60 * 60;

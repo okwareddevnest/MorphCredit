@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /**
  * @title ScoreOracle
@@ -44,9 +46,7 @@ contract ScoreOracle is AccessControl {
      */
     function setScore(address user, ScoreReport calldata sr) external onlyRole(ORACLE_ROLE) {
         _validateScoreReport(sr);
-        // Temporarily disable signature verification for testing
-        // _verifySignature(user, sr);
-        
+        _verifySignature(user, sr);
         scores[user] = sr;
         emit ScoreSet(user, sr.score, sr.pd_bps, sr.expiry);
     }
@@ -107,20 +107,16 @@ contract ScoreOracle is AccessControl {
      * @dev Verifies the ECDSA signature of the score report
      */
     function _verifySignature(address user, ScoreReport calldata sr) internal view {
-        // Temporarily disabled for testing
-        /*
         bytes32 messageHash = keccak256(abi.encodePacked(
+            "MorphCredit Score Report",
             user,
             sr.score,
             sr.pd_bps,
             sr.featuresRoot,
             sr.expiry
         ));
-        
-        bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
-        address recoveredSigner = ethSignedMessageHash.recover(sr.sig);
-        
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        address recoveredSigner = ECDSA.recover(ethSignedMessageHash, sr.sig);
         if (recoveredSigner != oracleSigner) revert ScoreOracle_InvalidSignature();
-        */
     }
 } 

@@ -29,13 +29,13 @@ const config: HardhatUserConfig = {
       chainId: 31337,
     },
     "morph-testnet": {
-      url: process.env.MORPH_RPC_URL || "https://morph-testnet.rpc",
-      chainId: 17000,
+      url: process.env.MORPH_RPC_URL || process.env.MORPH_RPC || "https://rpc-testnet.morphl2.io",
+      chainId: Number(process.env.MORPH_CHAIN_ID || 17000),
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
     "morph-mainnet": {
-      url: process.env.MORPH_MAINNET_RPC_URL || "https://morph-mainnet.rpc",
-      chainId: 17001,
+      url: process.env.MORPH_MAINNET_RPC_URL || "https://rpc.morphl2.io",
+      chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2710),
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
   },
@@ -52,18 +52,18 @@ const config: HardhatUserConfig = {
     customChains: [
       {
         network: "morph-testnet",
-        chainId: 17000,
+        chainId: Number(process.env.MORPH_CHAIN_ID || 17000),
         urls: {
-          apiURL: "https://explorer-testnet.morph.io/api",
-          browserURL: "https://explorer-testnet.morph.io",
+          apiURL: process.env.MORPHSCAN_TESTNET_API || "https://explorer-testnet.morphl2.io/api",
+          browserURL: process.env.MORPHSCAN_TESTNET_BROWSER || "https://explorer-testnet.morphl2.io",
         },
       },
       {
         network: "morph-mainnet",
-        chainId: 17001,
+        chainId: Number(process.env.MORPH_MAINNET_CHAIN_ID || 2710),
         urls: {
-          apiURL: "https://explorer.morph.io/api",
-          browserURL: "https://explorer.morph.io",
+          apiURL: process.env.MORPHSCAN_MAINNET_API || "https://explorer.morphl2.io/api",
+          browserURL: process.env.MORPHSCAN_MAINNET_BROWSER || "https://explorer.morphl2.io",
         },
       },
     ],

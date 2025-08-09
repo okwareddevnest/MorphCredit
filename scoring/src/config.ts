@@ -12,6 +12,7 @@ const envSchema = z.object({
   ORACLE_PRIV_KEY: z.string().min(64, 'ORACLE_PRIV_KEY must be at least 64 characters'),
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   CORS_ORIGIN: z.string().default('*'),
+  SCORE_ORACLE_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
 });
 
 // Validate environment variables
@@ -24,6 +25,7 @@ export const config = {
   oraclePrivKey: env.ORACLE_PRIV_KEY,
   logLevel: env.LOG_LEVEL,
   corsOrigin: env.CORS_ORIGIN,
+  scoreOracleAddress: env.SCORE_ORACLE_ADDRESS,
   
   // Scoring parameters
   scoring: {

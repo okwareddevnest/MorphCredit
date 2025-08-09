@@ -368,4 +368,7 @@ export type {
 };
 
 // Export default instance
-export default MorphCreditSDK; 
+export default MorphCreditSDK;
+
+// Export the button component
+export { default as MorphCreditButton } from './button'; 
