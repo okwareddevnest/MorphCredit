@@ -77,10 +77,16 @@ cd apps/merchant-demo && pnpm dev
 ### Production deployment
 
 - UI on Vercel (Merchant Demo)
-  - Set project root to `apps/merchant-demo`
-  - Build command: `pnpm i --frozen-lockfile && pnpm -w build && pnpm build`
+  - Project root: `apps/merchant-demo`
+  - Build command: `pnpm i --frozen-lockfile && pnpm -r build && pnpm build`
   - Output directory: `dist`
-  - Environment: none required; uses on-chain RPC and config in repo
+  - Env (optional): none required; uses on-chain RPC and repo config
+
+- Borrower PWA on Vercel
+  - Project root: `apps/borrower-pwa`
+  - Build command: `pnpm i --frozen-lockfile && pnpm -r build && pnpm build`
+  - Output directory: `dist`
+  - Env: set `VITE_*` vars (see below)
 
 - Scoring service on Render
   - One-click via `render.yaml` at repo root

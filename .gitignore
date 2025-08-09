@@ -245,5 +245,3 @@ apps/merchant-demo/test-results/
 apps/merchant-demo/test-coverage/
 apps/merchant-demo/test-results.json
 apps/merchant-demo/test-coverage.json
-
-pnpm-lock.yaml
