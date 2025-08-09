@@ -68,6 +68,22 @@ export const Cart: React.FC<CartProps> = ({
         }
       }, { enableLogging: true });
       const address = await sdk.connectWallet();
+      // Ensure correct chain and active account (helps Brave/MetaMask surface the prompt)
+      const eth = (window as any).ethereum;
+      if (eth?.request) {
+        try {
+          await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0xAFA' }] });
+        } catch (e: any) {
+          // Add chain if missing
+          if (e?.code === 4902) {
+            await eth.request({
+              method: 'wallet_addEthereumChain',
+              params: [{ chainId: '0xAFA', chainName: 'Morph Holesky', rpcUrls: ['https://rpc-holesky.morphl2.io'] }]
+            });
+          }
+        }
+        await eth.request({ method: 'eth_requestAccounts' });
+      }
       const offers = await sdk.getOffers({ address, amount: totalPrice });
       if (!offers.length) throw new Error('No offers available');
       sdk.updateConfig({
@@ -79,7 +95,16 @@ export const Cart: React.FC<CartProps> = ({
         }
       });
       sdk.updateOptions?.({ skipRoleCheck: true, enableLogging: true } as any);
-      const result = await sdk.createAgreement(offers[0].id);
+      let result: TxResult;
+      try {
+        result = await sdk.createAgreement(offers[0].id);
+      } catch (err: any) {
+        // Common with Brave/extension wallets when the approval window is not focused
+        if (err?.code === -32002) {
+          alert('Please open your wallet (extension) to approve the transaction, then try again.');
+        }
+        throw err;
+      }
       handleSuccess(result);
     } catch (e) {
       console.error('Payment failed:', e);
