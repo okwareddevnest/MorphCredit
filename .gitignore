@@ -234,3 +234,16 @@ contracts/logs/
 # Temporary files
 contracts/tmp/
 contracts/temp/
+
+
+# Merchant demo
+apps/merchant-demo/node_modules/
+apps/merchant-demo/dist/
+apps/merchant-demo/build/
+apps/merchant-demo/coverage/
+apps/merchant-demo/test-results/
+apps/merchant-demo/test-coverage/
+apps/merchant-demo/test-results.json
+apps/merchant-demo/test-coverage.json
+
+pnpm-lock.yaml
