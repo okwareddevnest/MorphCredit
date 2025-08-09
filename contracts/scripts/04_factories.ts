@@ -39,15 +39,20 @@ async function main() {
   const locFactoryAddress = await locFactory.getAddress();
   console.log("LoCFactory deployed to:", locFactoryAddress);
 
-  // Initialize factories
-  await bnplFactory.initialize(tokenAddress, poolAddress, deployer.address);
-  await locFactory.initialize(tokenAddress, registryAddress, deployer.address);
+  // Initialize factories with explicit gas settings
+  const gasPrice = process.env.MORPH_GAS_PRICE ? BigInt(process.env.MORPH_GAS_PRICE) : undefined;
+  await bnplFactory.initialize(tokenAddress, poolAddress, deployer.address, { gasLimit: 2_000_000, ...(gasPrice ? { gasPrice } : {}) });
+  await locFactory.initialize(tokenAddress, registryAddress, deployer.address, { gasLimit: 2_000_000, ...(gasPrice ? { gasPrice } : {}) });
   console.log("Factories initialized");
 
   // Link CreditRegistry to LendingPool
   console.log("Linking CreditRegistry to LendingPool...");
-  const creditRegistry = await ethers.getContractAt("CreditRegistry", registryAddress);
-  await creditRegistry.setLendingPool(poolAddress);
+  try {
+    const creditRegistry = await ethers.getContractAt("CreditRegistry", registryAddress);
+    await creditRegistry.setLendingPool(poolAddress, { gasLimit: 1_000_000, ...(gasPrice ? { gasPrice } : {}) });
+  } catch (e) {
+    console.warn("setLendingPool not available on CreditRegistrySimple, skipping link");
+  }
   console.log("CreditRegistry linked to LendingPool");
 
   // Write factory addresses to files

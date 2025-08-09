@@ -33,8 +33,14 @@ async function main() {
   const lendingPoolAddress = await lendingPool.getAddress();
   console.log("LendingPool deployed to:", lendingPoolAddress);
 
-  // Initialize LendingPool
-  await lendingPool.initialize(mockStableAddress, registryAddress, deployer.address);
+  // Initialize LendingPool with explicit gas settings per Morph docs
+  const gasPrice = process.env.MORPH_GAS_PRICE ? BigInt(process.env.MORPH_GAS_PRICE) : undefined;
+  await lendingPool.initialize(
+    mockStableAddress,
+    registryAddress,
+    deployer.address,
+    { gasLimit: 3_000_000, ...(gasPrice ? { gasPrice } : {}) }
+  );
   console.log("LendingPool initialized");
 
   // Write addresses to files
