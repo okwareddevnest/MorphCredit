@@ -1,5 +1,5 @@
 {
-  "name": "@morphcredit/merchant-sdk",
+  "name": "morphcredit-merchant-sdk",
   "version": "0.1.0",
   "description": "MorphCredit Merchant SDK for BNPL integration",
   "type": "module",

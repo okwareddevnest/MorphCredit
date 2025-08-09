@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
-import { MorphCreditButton } from '@morphcredit/merchant-sdk';
-import type { TxResult } from '@morphcredit/merchant-sdk';
+import { MorphCreditButton } from 'morphcredit-merchant-sdk';
+import type { TxResult } from 'morphcredit-merchant-sdk';
 
 interface Product {
   id: number;

@@ -1,4 +1,4 @@
-## MorphCredit Monorepo
+## MorphCredit
 
 End-to-end, no-mocks deployment of MorphCredit on Morph Holesky Testnet (Chain ID 2810). Includes smart contracts, scoring service, Borrower PWA, Merchant Demo, and a publishable Merchant SDK.
 
@@ -12,7 +12,7 @@ flowchart LR
     M[Merchant Demo]
   end
   subgraph SDK
-    S["@morphcredit/merchant-sdk"]
+    S["morphcredit-merchant-sdk"]
   end
   subgraph Backend
     SC[(Scoring Service)]
@@ -87,8 +87,8 @@ cd apps/merchant-demo && pnpm dev
   - Set environment variables (see below)
 
 - SDK on npm
-  - Package: `@morphcredit/merchant-sdk`
-  - `pnpm -w -F @morphcredit/merchant-sdk build`
+  - Package: `morphcredit-merchant-sdk`
+  - `pnpm -w -F morphcredit-merchant-sdk build`
   - `cd packages/merchant-sdk && npm publish --access public`
 
 ### Environment variables
@@ -112,7 +112,7 @@ Borrower PWA (`apps/borrower-pwa/.env` or Vercel):
 ### Merchant SDK usage
 
 ```ts
-import { MorphCreditSDK } from '@morphcredit/merchant-sdk';
+import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
 
 const sdk = new MorphCreditSDK();
 await sdk.connectWallet();

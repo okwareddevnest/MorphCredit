@@ -1,19 +1,19 @@
-## @morphcredit/merchant-sdk
+## morphcredit-merchant-sdk
 
 Production-ready Merchant SDK for integrating MorphCredit BNPL on Morph Holesky (Chain ID 2810).
 
 ### Install
 
 ```bash
-npm i @morphcredit/merchant-sdk
+npm i morphcredit-merchant-sdk
 # or
-pnpm add @morphcredit/merchant-sdk
+pnpm add morphcredit-merchant-sdk
 ```
 
 ### Quick start
 
 ```ts
-import { MorphCreditSDK } from '@morphcredit/merchant-sdk';
+import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
 
 const sdk = new MorphCreditSDK({}, { enableLogging: true });
 await sdk.connectWallet();
@@ -26,7 +26,7 @@ console.log('tx', result.txHash, 'agreement', result.agreementId);
 ### React button
 
 ```tsx
-import { MorphCreditButton } from '@morphcredit/merchant-sdk';
+import { MorphCreditButton } from 'morphcredit-merchant-sdk';
 
 <MorphCreditButton
   amount={499.99}
@@ -98,11 +98,11 @@ A TypeScript SDK for integrating MorphCredit's Buy Now, Pay Later (BNPL) functio
 ## Installation
 
 ```bash
-npm install @morphcredit/merchant-sdk
+npm install morphcredit-merchant-sdk
 # or
-yarn add @morphcredit/merchant-sdk
+yarn add morphcredit-merchant-sdk
 # or
-pnpm add @morphcredit/merchant-sdk
+pnpm add morphcredit-merchant-sdk
 ```
 
 ## Quick Start
@@ -110,7 +110,7 @@ pnpm add @morphcredit/merchant-sdk
 ### 1. Basic React Integration
 
 ```tsx
-import { MorphCreditButton } from '@morphcredit/merchant-sdk';
+import { MorphCreditButton } from 'morphcredit-merchant-sdk';
 
 function CheckoutPage() {
   const handleSuccess = (result) => {
@@ -145,7 +145,7 @@ function CheckoutPage() {
 ### 2. Programmatic SDK Usage
 
 ```typescript
-import { MorphCreditSDK } from '@morphcredit/merchant-sdk';
+import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
 
 // Initialize SDK
 const sdk = new MorphCreditSDK({
