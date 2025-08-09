@@ -3,8 +3,12 @@ services:
     name: morphcredit-scoring
     env: node
     plan: starter
-    buildCommand: pnpm -w build && pnpm --filter @morphcredit/scoring build
+    buildCommand: |
+      corepack enable
+      pnpm i --frozen-lockfile
+      pnpm -r build
     startCommand: pnpm --filter @morphcredit/scoring start
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: MORPH_RPC
@@ -21,7 +25,7 @@ services:
         sync: false
       - key: RP_ORIGIN
         sync: false
-      - key: PORT
-        value: 10000
+      - key: CORS_ORIGIN
+        sync: false
 
 
