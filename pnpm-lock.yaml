@@ -93,8 +93,8 @@ importers:
         specifier: ^0.294.0
         version: 0.294.0(react@18.3.1)
       morphcredit-merchant-sdk:
-        specifier: ^0.1.1
-        version: 0.1.1(bufferutil@4.0.9)(react@18.3.1)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
+        specifier: ^0.1.2
+        version: 0.1.2(bufferutil@4.0.9)(react@18.3.1)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -3855,8 +3855,8 @@ packages:
       socks:
         optional: true
 
-  morphcredit-merchant-sdk@0.1.1:
-    resolution: {integrity: sha512-Ql1rljQdc9rjFZ75GSGizCGLUG5W0OWkty7sgoXS62QeSsbzEVHqZIt+X52F3hlJ6vSxOXmhOZae3C6FLJ4MKQ==}
+  morphcredit-merchant-sdk@0.1.2:
+    resolution: {integrity: sha512-Jo/Qv8BN3//2i8tGR/TM2EQnF6NfU/e+cq691x4JhngBFk2f1TAZEk7rC5ffX6u+bL99Ze8RuW/z/Xdzvv6jCw==}
     peerDependencies:
       react: '>=16.8.0'
 
@@ -10965,7 +10965,7 @@ snapshots:
       bson: 6.10.4
       mongodb-connection-string-url: 3.0.2
 
-  morphcredit-merchant-sdk@0.1.1(bufferutil@4.0.9)(react@18.3.1)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76):
+  morphcredit-merchant-sdk@0.1.2(bufferutil@4.0.9)(react@18.3.1)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@3.25.76):
     dependencies:
       ethers: 6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       react: 18.3.1

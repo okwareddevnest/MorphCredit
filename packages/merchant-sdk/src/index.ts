@@ -262,12 +262,19 @@ export class MorphCreditSDK {
       const borrower = borrowerAddress || (await signer.getAddress());
       const merchant = await signer.getAddress();
       const fac = new ethers.Contract(this.config.contracts.bnplFactory, MorphCreditSDK.BNPL_FACTORY_ABI, signer);
-      // Check FACTORY_ROLE on caller
-      const FACTORY_ROLE = ethers.id('FACTORY_ROLE');
-      const caller = await signer.getAddress();
-      const hasRole: boolean = await fac.hasRole(FACTORY_ROLE, caller);
-      if (!hasRole) {
-        throw new MorphCreditError(ErrorCodes.AGREEMENT_FAILED, 'Merchant is not authorized (FACTORY_ROLE missing)');
+      // Check FACTORY_ROLE unless skipRoleCheck option is enabled
+      if (!this.options.skipRoleCheck) {
+        try {
+          const FACTORY_ROLE = ethers.id('FACTORY_ROLE');
+          const caller = await signer.getAddress();
+          const hasRole: boolean = await fac.hasRole(FACTORY_ROLE, caller);
+          if (!hasRole) {
+            throw new MorphCreditError(ErrorCodes.AGREEMENT_FAILED, 'Merchant is not authorized (FACTORY_ROLE missing)');
+          }
+        } catch (e) {
+          if (this.options.enableLogging) console.warn('Role check skipped due to error; set skipRoleCheck to true to silence', e);
+          if (!this.options.skipRoleCheck) throw e;
+        }
       }
       const aprBps = Math.floor(offer.apr * 10000);
       const tx = await fac.createAgreement(borrower, merchant, offer.principal, offer.installments, aprBps, {
@@ -387,6 +394,10 @@ export class MorphCreditSDK {
   updateConfig(config: Partial<SDKConfig>): void {
     this.config = { ...this.config, ...config };
     this.initializeProviders();
+  }
+
+  public updateOptions(options: Partial<SDKOptions>): void {
+    this.options = { ...(this.options as SDKOptions), ...(options as SDKOptions) } as SDKOptions;
   }
 
   getConfig(): SDKConfig {

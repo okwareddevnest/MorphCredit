@@ -1,6 +1,6 @@
 {
   "name": "morphcredit-merchant-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MorphCredit Merchant SDK for BNPL integration",
   "type": "module",
   "main": "./dist/index.js",

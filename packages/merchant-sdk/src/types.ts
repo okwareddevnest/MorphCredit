@@ -17,6 +17,11 @@ export interface SDKOptions {
   enableLogging?: boolean;
   retryAttempts?: number;
   retryDelay?: number;
+  /**
+   * If true, skip pre-checking FACTORY_ROLE before calling createAgreement.
+   * Useful on some RPCs/proxies where static calls may return empty data.
+   */
+  skipRoleCheck?: boolean;
 }
 
 export interface Offer {

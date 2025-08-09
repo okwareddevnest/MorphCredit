@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
 import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
-import { ethers } from 'ethers';
 import type { TxResult } from 'morphcredit-merchant-sdk';
 
 interface Product {
@@ -71,25 +70,16 @@ export const Cart: React.FC<CartProps> = ({
       const address = await sdk.connectWallet();
       const offers = await sdk.getOffers({ address, amount: totalPrice });
       if (!offers.length) throw new Error('No offers available');
-      const offer = offers[0];
-      // Direct on-chain call (avoid pre-check role in SDK)
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const fac = new ethers.Contract(
-        '0x50e43053510E8f25280d335F5c7F30b15CF13965',
-        [
-          'function createAgreement(address borrower,address merchant,uint256 principal,uint256 installments,uint256 apr) returns (address)'
-        ],
-        signer
-      );
-      const principal = BigInt(Math.floor(totalPrice * 1e6));
-      const installments = 4;
-      const aprBps = Math.floor(offer.apr * 10000);
-      const borrower = await signer.getAddress();
-      const merchant = borrower;
-      const tx = await fac.createAgreement(borrower, merchant, principal, installments, aprBps);
-      const receipt = await tx.wait(1);
-      const result: TxResult = { success: true, txHash: tx.hash, agreementId: tx.hash, blockNumber: receipt?.blockNumber ?? 0, gasUsed: Number(receipt?.gasUsed ?? 0n), gasPrice: (tx as any).gasPrice ?? 0n };
+      sdk.updateConfig({
+        contracts: {
+          scoreOracle: '0xd9Dc385246308FfBEBdEAc210F4c6B2E26Eb096d',
+          creditRegistry: '0x62179b92bD09Bfc6699646F3394A6595c1E12BB2',
+          lendingPool: '0x22D194Bb22f66731421C5F93163a7DFC05D2Ed5f',
+          bnplFactory: '0x50e43053510E8f25280d335F5c7F30b15CF13965',
+        }
+      });
+      sdk.updateOptions?.({ skipRoleCheck: true, enableLogging: true } as any);
+      const result = await sdk.createAgreement(offers[0].id);
       handleSuccess(result);
     } catch (e) {
       console.error('Payment failed:', e);
