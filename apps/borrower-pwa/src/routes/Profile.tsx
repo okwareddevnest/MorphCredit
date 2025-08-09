@@ -314,7 +314,7 @@ export const Profile: React.FC = () => {
                       });
                       if (e.target.checked && address) {
                         try {
-                          const base = (import.meta as any).env.VITE_SCORING_URL || 'http://localhost:8787';
+                            const base = (import.meta as any).env?.VITE_SCORING_URL || (window as any).__MORPHCREDIT_SCORING_URL__ || 'https://morphcredit.onrender.com';
                           const resp = await fetch(`${base}/webauthn/challenge/${address}`, { method: 'POST' });
                           const { data: options } = await resp.json();
                           // Convert base64url properties
@@ -377,7 +377,7 @@ export const Profile: React.FC = () => {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file || !address) return;
-                      const base = (import.meta as any).env.VITE_SCORING_URL || 'http://localhost:8787';
+                            const base = (import.meta as any).env?.VITE_SCORING_URL || (window as any).__MORPHCREDIT_SCORING_URL__ || 'https://morphcredit.onrender.com';
                       const fd = new FormData();
                       fd.append('avatar', file);
                       const resp = await fetch(`${base}/user/${address}/avatar`, { method: 'POST', body: fd });

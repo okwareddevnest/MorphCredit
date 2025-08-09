@@ -32,7 +32,10 @@ export interface ScoreApiResponse {
   error?: string;
 }
 
-const SCORING_URL = import.meta.env.VITE_SCORING_URL || 'http://localhost:8787';
+const SCORING_URL =
+  (import.meta as any).env?.VITE_SCORING_URL ||
+  (typeof window !== 'undefined' && (window as any).__MORPHCREDIT_SCORING_URL__) ||
+  'https://morphcredit.onrender.com';
 
 export const requestScore = async (request: ScoreRequest): Promise<ScoreApiData> => {
   try {

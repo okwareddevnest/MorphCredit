@@ -9,6 +9,9 @@
     <title>MorphCredit - Borrower PWA</title>
     <script>window.global = window;</script>
     <script>
+      window.__MORPHCREDIT_SCORING_URL__ = 'https://morphcredit.onrender.com';
+    </script>
+    <script>
       if (!window.Buffer) {
         window.Buffer = {
           from: function() { throw new Error('Buffer.from not available in browser.'); }

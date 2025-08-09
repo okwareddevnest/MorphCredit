@@ -61,6 +61,13 @@ export class MorphCreditSDK {
   private offersCache: Map<string, Offer> = new Map();
 
   constructor(config: Partial<SDKConfig> = {}, options: SDKOptions = {}) {
+    // Resolve scoring service base URL with robust fallbacks suitable for browser builds
+    const runtimeScoring = (
+      (typeof globalThis !== 'undefined' && (globalThis as any).__MORPHCREDIT_SCORING_URL__) ||
+      (typeof process !== 'undefined' && (process as any).env && (process as any).env.MORPHCREDIT_SCORING_URL) ||
+      'https://morphcredit.onrender.com'
+    );
+
     this.config = {
       rpcUrl: 'https://rpc-holesky.morphl2.io',
       contracts: {
@@ -69,7 +76,7 @@ export class MorphCreditSDK {
         lendingPool: (addresses as any).lendingPool,
         bnplFactory: (addresses as any).bnplFactory,
       },
-      scoringService: 'http://localhost:8787',
+      scoringService: runtimeScoring,
       networkId: 2810,
       gasLimit: 800000,
       confirmations: 1,
