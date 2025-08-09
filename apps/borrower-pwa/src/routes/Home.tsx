@@ -16,6 +16,7 @@ import { ScoreCard } from '../components/ScoreCard';
 import { LimitAPR } from '../components/LimitAPR';
 import { Alerts, Alert } from '../components/Alerts';
 import { formatAddress, formatBalance } from '../lib/wallet';
+import { readScore, readRegistryState } from '../lib/contracts';
 
 export const Home: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -40,24 +41,25 @@ export const Home: React.FC = () => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
-  // Mock data for demonstration
   useEffect(() => {
-    if (isConnected) {
+    (async () => {
+      if (!isConnected || !address) return;
       setIsLoading(true);
-      setTimeout(() => {
-        setCreditScore(750);
-        setCreditLimit(5000);
-        setApr(0.18);
+      try {
+        try {
+          const s = await readScore(address);
+          setCreditScore(s.score);
+        } catch {}
+        const st = await readRegistryState(address);
+        if (st) {
+          setCreditLimit(Number(st.limit / BigInt(1_000_000)));
+          setApr(st.aprBps / 10000);
+        }
+      } finally {
         setIsLoading(false);
-        
-        addAlert({
-          type: 'success',
-          title: 'Welcome back!',
-          message: 'Your credit score has been updated.'
-        });
-      }, 1000);
-    }
-  }, [isConnected]);
+      }
+    })();
+  }, [isConnected, address]);
 
   const stats = [
     {
@@ -110,7 +112,7 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <Alerts alerts={alerts} onDismiss={dismissAlert} />
       
       {/* Welcome Header */}
