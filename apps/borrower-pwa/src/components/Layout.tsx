@@ -30,7 +30,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen w-full bg-dark-950 text-white">
+    <div className="min-h-screen w-full bg-dark-950 text-white flex flex-col">
       {/* Animated Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,135,255,0.1),transparent_50%)]"></div>
@@ -38,7 +38,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Header */}
-      <header className="relative z-10 w-full bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
+      <header className="sticky top-0 z-50 w-full bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -123,7 +123,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 w-full">
+      <main className="relative z-10 w-full flex-1">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-fade-in">
             {children}
@@ -132,7 +132,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 bg-dark-900/80 backdrop-blur-md border-t border-dark-700/50 mt-auto">
+      <footer className="bg-dark-900/80 backdrop-blur-md border-t border-dark-700/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="flex items-center space-x-3">

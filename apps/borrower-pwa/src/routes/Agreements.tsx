@@ -11,6 +11,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
+import { listAgreements, readAgreement } from '../lib/contracts';
 
 interface BNPLAgreement {
   id: string;
@@ -49,78 +50,40 @@ export const Agreements: React.FC = () => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
-  // Mock data for demonstration
   useEffect(() => {
-    if (isConnected) {
+    (async () => {
+      if (!isConnected || !address) return;
       setIsLoading(true);
-      setTimeout(() => {
-        const mockAgreements: BNPLAgreement[] = [
-          {
-            id: 'agreement_1',
-            merchant: '0x1234567890123456789012345678901234567890',
-            merchantName: 'TechStore Pro',
-            amount: 1200,
-            installments: 4,
-            paidInstallments: 1,
-            nextDueDate: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60,
-            nextAmount: 300,
-            status: 'active',
-            autoRepay: true,
-            apr: 0.20,
-            totalCost: 1260,
-            createdAt: Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60
-          },
-          {
-            id: 'agreement_2',
-            merchant: '0x0987654321098765432109876543210987654321',
-            merchantName: 'GadgetHub',
-            amount: 800,
-            installments: 4,
-            paidInstallments: 2,
-            nextDueDate: Math.floor(Date.now() / 1000) + 14 * 24 * 60 * 60,
-            nextAmount: 200,
-            status: 'active',
-            autoRepay: false,
-            apr: 0.25,
-            totalCost: 840,
-            createdAt: Math.floor(Date.now() / 1000) - 45 * 24 * 60 * 60
-          },
-          {
-            id: 'agreement_3',
-            merchant: '0xabcdef1234567890abcdef1234567890abcdef12',
-            merchantName: 'SmartElectronics',
-            amount: 500,
-            installments: 2,
-            paidInstallments: 2,
-            nextDueDate: Math.floor(Date.now() / 1000) - 24 * 60 * 60,
-            nextAmount: 0,
-            status: 'completed',
-            autoRepay: false,
-            apr: 0.18,
-            totalCost: 520,
-            createdAt: Math.floor(Date.now() / 1000) - 60 * 24 * 60 * 60
-          },
-          {
-            id: 'agreement_4',
-            merchant: '0xfedcba0987654321fedcba0987654321fedcba09',
-            merchantName: 'DigitalWorld',
-            amount: 1500,
-            installments: 6,
-            paidInstallments: 0,
-            nextDueDate: Math.floor(Date.now() / 1000) - 5 * 24 * 60 * 60,
-            nextAmount: 250,
-            status: 'overdue',
-            autoRepay: false,
-            apr: 0.22,
-            totalCost: 1580,
-            createdAt: Math.floor(Date.now() / 1000) - 15 * 24 * 60 * 60
-          }
-        ];
-        setAgreements(mockAgreements);
+      try {
+        const addrs = await listAgreements(address);
+        const rows: BNPLAgreement[] = [];
+        for (const a of addrs) {
+          try {
+            const { agreement, installments } = await readAgreement(a);
+            const due = installments.find((i: any) => !i.isPaid);
+            rows.push({
+              id: a,
+              merchant: agreement.merchant,
+              merchantName: agreement.merchant,
+              amount: Number(agreement.principal) / 1_000_000,
+              installments: Number(agreement.installments),
+              paidInstallments: Number(agreement.paidInstallments),
+              nextDueDate: due ? Number(due.dueDate) : 0,
+              nextAmount: due ? Number(due.amount) / 1_000_000 : 0,
+              status: Number(agreement.status) === 2 ? 'completed' : 'active',
+              autoRepay: false,
+              apr: Number(agreement.apr) / 10000,
+              totalCost: Number(agreement.installmentAmount) / 1_000_000 * Number(agreement.installments),
+              createdAt: Number(agreement.lastPaymentDate) || 0
+            });
+          } catch {}
+        }
+        setAgreements(rows);
+      } finally {
         setIsLoading(false);
-      }, 1000);
-    }
-  }, [isConnected]);
+      }
+    })();
+  }, [isConnected, address]);
 
   const filteredAgreements = agreements.filter(agreement => {
     if (filter === 'all') return true;
