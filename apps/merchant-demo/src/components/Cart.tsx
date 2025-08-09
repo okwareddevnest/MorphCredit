@@ -148,6 +148,9 @@ export const Cart: React.FC<CartProps> = ({
         gasLimit: 2_500_000,
       });
       sdk.updateOptions?.({ skipRoleCheck: true, enableLogging: true } as any);
+
+      // No preflight simulation/estimation: submit the real transaction with configured gas limit
+
       let result: TxResult;
       try {
         result = await sdk.createAgreement(offers[0].id);
