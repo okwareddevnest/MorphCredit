@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react';
 import { ConnectWallet } from './ConnectWallet';
+import { InstallPWAButton } from './InstallPWAButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -83,13 +84,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="ml-3"><ConnectWallet compact /></div>
             </nav>
             
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button + Install PWA */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="md:hidden p-2 text-dark-300 hover:text-white hover:bg-dark-800/50 rounded-lg transition-colors"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
+            <InstallPWAButton />
           </div>
         </div>
         

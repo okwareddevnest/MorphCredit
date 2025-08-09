@@ -10,6 +10,7 @@ import { config } from './config';
 import { FeatureExtractor } from './features';
 import { ScoringModel } from './model';
 import { ReportGenerator, ScoreRequestSchema, ScoreReportSchema } from './report';
+import { getUser, updateUser, UserProfile } from './users';
 import ScoreOracleAbi from './abis/ScoreOracle.json';
 
 // Initialize logger
@@ -155,6 +156,51 @@ app.post('/score', async (req: Request, res: Response) => {
       error: 'Internal server error',
     });
     return;
+  }
+});
+
+// Profile endpoints
+app.get('/user/:address', (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+    const profile = getUser(address);
+    res.json({ success: true, data: profile });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to fetch user' });
+  }
+});
+
+app.post('/user/:address', (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+    const partial = req.body as Partial<UserProfile>;
+    const saved = updateUser(address, partial);
+    res.json({ success: true, data: saved });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to update user' });
+  }
+});
+
+// Minimal WebAuthn-like endpoints (challenge storage only; actual verification would require RP config)
+app.post('/webauthn/challenge/:address', (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+    const challenge = ethers.hexlify(ethers.randomBytes(32));
+    const profile = updateUser(address, { challenge });
+    res.json({ success: true, data: { challenge: profile.challenge } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to create challenge' });
+  }
+});
+
+app.post('/webauthn/register/:address', (req: Request, res: Response) => {
+  try {
+    const { address } = req.params;
+    const { credentialID, publicKey } = req.body as { credentialID: string; publicKey: string };
+    const saved = updateUser(address, { webauthn: { credentialID, publicKey, counter: 0 }, security: { biometric: true } });
+    res.json({ success: true, data: saved });
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Failed to save credential' });
   }
 });
 

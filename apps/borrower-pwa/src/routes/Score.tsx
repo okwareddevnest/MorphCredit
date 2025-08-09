@@ -3,8 +3,10 @@ import { useAccount } from 'wagmi';
 import { TrendingUp, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { ScoreCard } from '../components/ScoreCard';
 import { Alerts, Alert } from '../components/Alerts';
-import { requestScore, publishScoreToOracle, getScoreHistory } from '../lib/api';
+import { requestScore, publishScoreToOracle, ScoreApiData } from '../lib/api';
 import { getShortAddress } from '../lib/wallet';
+import { readScore } from '../lib/contracts';
+import { getScoreOracleAddress } from '../lib/addresses';
 
 interface ScoreHistory {
   score: number;
@@ -15,9 +17,10 @@ interface ScoreHistory {
 export const Score: React.FC = () => {
   const { address, isConnected } = useAccount();
   
-  const [score, setScore] = useState(720);
-  const [limit, setLimit] = useState(5000);
-  const [apr, setApr] = useState(0.15);
+  const [score, setScore] = useState<number | null>(null);
+  // Reserved for future UI display
+  // const [limit, setLimit] = useState<number | null>(null);
+  // const [apr, setApr] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [scoreHistory, setScoreHistory] = useState<ScoreHistory[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -57,30 +60,28 @@ export const Score: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const scoreResponse = await requestScore({
-        address,
-        amount: requestAmount,
-        purpose: 'credit_assessment'
-      });
-
-      setScore(scoreResponse.score);
-      setLimit(scoreResponse.limit);
-      setApr(scoreResponse.apr);
+      const data: ScoreApiData = await requestScore({ address });
 
       // Publish score to oracle
-      const txHash = await publishScoreToOracle(scoreResponse, address);
+      const txHash = await publishScoreToOracle(address, data.report);
 
-      // Add to history
+      // Re-read on-chain score as source of truth
+      const onchain = await readScore(address);
+      setScore(onchain.score);
+      // Basic heuristics for displaying limit/APR from model tier (optional)
+      // limit/APR to be derived from model tier in a later UI pass
+
+      // Add to history (timestamp from metadata)
       setScoreHistory(prev => [{
-        score: scoreResponse.score,
-        timestamp: scoreResponse.timestamp,
-        signature: scoreResponse.signature
+        score: data.scoring.score,
+        timestamp: Math.floor(new Date(data.metadata.generatedAt).getTime() / 1000),
+        signature: data.report.sig
       }, ...prev]);
 
       addAlert({
         type: 'success',
         title: 'Score Updated Successfully',
-          message: `Your credit score has been updated to ${scoreResponse.score}. Transaction: ${txHash.slice(0, 10)}...`,
+        message: `On-chain score: ${onchain.score}. Tx: ${txHash.slice(0, 10)}...`,
       });
     } catch (error) {
       addAlert({
@@ -94,15 +95,13 @@ export const Score: React.FC = () => {
   };
 
   useEffect(() => {
-    if (address) {
-      getScoreHistory(address).then(history => {
-        setScoreHistory(history.map(h => ({
-          score: h.score,
-          timestamp: h.timestamp,
-          signature: h.signature
-        })));
-      }).catch(console.error);
-    }
+    if (!address) return;
+    // Load existing on-chain score
+    readScore(address).then((s) => {
+      setScore(s.score || null);
+    }).catch(() => {
+      // ignore
+    });
   }, [address]);
 
   if (!isConnected) {
@@ -171,9 +170,8 @@ export const Score: React.FC = () => {
 
             <ScoreCard
               score={score}
-              limit={limit}
-              apr={apr}
               isLoading={isLoading}
+              onRequestScore={handleRequestScore}
             />
           </div>
 
@@ -215,9 +213,7 @@ export const Score: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h3 className="font-medium text-gray-900 mb-2">Score Oracle Address</h3>
-              <p className="text-sm text-gray-600 font-mono">
-                0x5FbDB2315678afecb367f032d93F642f64180aa3
-              </p>
+              <p className="text-sm text-gray-600 font-mono">{getScoreOracleAddress()}</p>
             </div>
             <div>
               <h3 className="font-medium text-gray-900 mb-2">Your Address</h3>

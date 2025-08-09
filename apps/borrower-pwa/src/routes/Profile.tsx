@@ -15,31 +15,19 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
+import { getUserProfile, saveUserProfile } from '../lib/api';
 
 export const Profile: React.FC = () => {
   const { address, isConnected } = useAccount();
   
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: 'user@example.com',
-    phone: '+1 (555) 123-4567',
-    notifications: {
-      email: true,
-      push: true,
-      sms: false
-    },
-    security: {
-      twoFactor: false,
-      autoRepay: true,
-      biometric: false
-    },
-    preferences: {
-      currency: 'USD',
-      language: 'en',
-      theme: 'dark'
-    }
+    email: '',
+    phone: '',
+    notifications: { email: true, push: true, sms: false },
+    security: { twoFactor: false, autoRepay: true, biometric: false },
+    preferences: { currency: 'USD', language: 'en', theme: 'dark', timezone: 'UTC' }
   });
 
   const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
@@ -55,13 +43,15 @@ export const Profile: React.FC = () => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    addAlert({
-      type: 'success',
-      title: 'Profile Updated',
-      message: 'Your profile settings have been saved successfully.'
-    });
+  const handleSave = async () => {
+    if (!address) return;
+    try {
+      await saveUserProfile(address, formData);
+      setIsEditing(false);
+      addAlert({ type: 'success', title: 'Profile Updated', message: 'Saved successfully.' });
+    } catch (e) {
+      addAlert({ type: 'error', title: 'Save Failed', message: e instanceof Error ? e.message : 'Failed to save.' });
+    }
   };
 
   const handleCancel = () => {
@@ -84,6 +74,19 @@ export const Profile: React.FC = () => {
       </div>
     );
   }
+
+  React.useEffect(() => {
+    if (!address) return;
+    getUserProfile(address).then((p) => {
+      setFormData({
+        email: p.email || '',
+        phone: p.phone || '',
+        notifications: p.notifications || { email: true, push: true, sms: false },
+        security: p.security || { twoFactor: false, autoRepay: true, biometric: false },
+        preferences: p.preferences || { currency: 'USD', language: 'en', theme: 'dark', timezone: 'UTC' }
+      });
+    }).catch(() => {});
+  }, [address]);
 
   return (
     <div className="space-y-6">
@@ -265,10 +268,36 @@ export const Profile: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={formData.security.biometric}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      security: {...formData.security, biometric: e.target.checked}
-                    })}
+                    onChange={async (e) => {
+                      setFormData({
+                        ...formData,
+                        security: { ...formData.security, biometric: e.target.checked }
+                      });
+                      if (e.target.checked && address) {
+                        try {
+                          // Request challenge
+                          const resp = await fetch((import.meta as any).env.VITE_SCORING_URL + `/webauthn/challenge/${address}`, { method: 'POST' });
+                          const { data } = await resp.json();
+                          const challenge = Uint8Array.from(Buffer.from(data.challenge.slice(2), 'hex'));
+                          const cred = await navigator.credentials.create({
+                            publicKey: {
+                              challenge,
+                              rp: { name: 'MorphCredit' },
+                              user: { id: new TextEncoder().encode(address), name: address, displayName: address },
+                              pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                              authenticatorSelection: { userVerification: 'preferred' },
+                              timeout: 60000,
+                            }
+                          } as any);
+                          const credId = (cred as any).id;
+                          const pubKey = '';
+                          await fetch((import.meta as any).env.VITE_SCORING_URL + `/webauthn/register/${address}`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ credentialID: credId, publicKey: pubKey })
+                          });
+                        } catch {}
+                      }
+                    }}
                     disabled={!isEditing}
                     className="sr-only peer"
                   />

@@ -14,6 +14,7 @@ import {
   Info
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
+import { getUserProfile, saveUserProfile } from '../lib/api';
 
 export const SettingsPage: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -70,13 +71,40 @@ export const SettingsPage: React.FC = () => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
-  const handleSaveSettings = () => {
-    addAlert({
-      type: 'success',
-      title: 'Settings Saved',
-      message: 'Your settings have been updated successfully.'
-    });
+  const handleSaveSettings = async () => {
+    if (!address) return;
+    try {
+      await saveUserProfile(address, { preferences: settings.general, notifications: {
+        email: { enabled: settings.notifications.email.enabled } as any,
+        push: { enabled: settings.notifications.push.enabled } as any,
+        sms: { enabled: settings.notifications.sms.enabled } as any,
+      } as any, security: settings.security as any });
+      addAlert({ type: 'success', title: 'Settings Saved', message: 'Your settings have been updated successfully.' });
+    } catch (e) {
+      addAlert({ type: 'error', title: 'Save Failed', message: e instanceof Error ? e.message : 'Failed to save settings.' });
+    }
   };
+
+  React.useEffect(() => {
+    if (!address) return;
+    getUserProfile(address).then((p) => {
+      setSettings((prev) => ({
+        ...prev,
+        general: {
+          theme: p.preferences?.theme || prev.general.theme,
+          language: p.preferences?.language || prev.general.language,
+          currency: p.preferences?.currency || prev.general.currency,
+          timezone: p.preferences?.timezone || prev.general.timezone,
+        },
+        security: {
+          sessionTimeout: prev.security.sessionTimeout,
+          requirePasswordForTransactions: prev.security.requirePasswordForTransactions,
+          maxTransactionAmount: prev.security.maxTransactionAmount,
+          whitelistAddresses: prev.security.whitelistAddresses,
+        },
+      }));
+    }).catch(() => {});
+  }, [address]);
 
   const handleExportData = () => {
     addAlert({

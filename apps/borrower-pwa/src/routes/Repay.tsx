@@ -3,6 +3,7 @@ import { useAccount } from 'wagmi';
 import { CreditCard, DollarSign, Calendar, AlertCircle } from 'lucide-react';
 import { RepayList } from '../components/RepayList';
 import { Alerts, Alert } from '../components/Alerts';
+import { listAgreements, readAgreement, repayInstallment } from '../lib/contracts';
 
 interface BNPLAgreement {
   id: string;
@@ -36,88 +37,70 @@ export const Repay: React.FC = () => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
   };
 
-  // Mock data for demonstration
+  // Load agreements from chain
   useEffect(() => {
-    if (isConnected) {
+    const load = async () => {
+      if (!isConnected || !address) return;
       setIsLoading(true);
-      // Simulate API call
-      setTimeout(() => {
-        const mockAgreements: BNPLAgreement[] = [
-          {
-            id: 'agreement_1',
-            merchant: '0x1234567890123456789012345678901234567890',
-            amount: 1200,
-            installments: 4,
-            paidInstallments: 1,
-            nextDueDate: Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60, // 7 days from now
-            nextAmount: 300000000, // 300 USDC in wei
-            status: 'active',
-            autoRepay: true
-          },
-          {
-            id: 'agreement_2',
-            merchant: '0x0987654321098765432109876543210987654321',
-            amount: 800,
-            installments: 4,
-            paidInstallments: 2,
-            nextDueDate: Math.floor(Date.now() / 1000) + 14 * 24 * 60 * 60, // 14 days from now
-            nextAmount: 200000000, // 200 USDC in wei
-            status: 'active',
-            autoRepay: false
-          },
-          {
-            id: 'agreement_3',
-            merchant: '0xabcdef1234567890abcdef1234567890abcdef12',
-            amount: 500,
-            installments: 2,
-            paidInstallments: 2,
-            nextDueDate: Math.floor(Date.now() / 1000) - 24 * 60 * 60, // 1 day ago
-            nextAmount: 0,
-            status: 'completed',
-            autoRepay: false
-          }
-        ];
-        setAgreements(mockAgreements);
-        setIsLoading(false);
-      }, 1000);
-    }
-  }, [isConnected]);
-
-  const handlePayNow = async (agreementId: string) => {
-    try {
-      // Simulate payment processing
-      addAlert({
-        type: 'info',
-        title: 'Processing Payment',
-        message: 'Your payment is being processed...',
-      });
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Update agreement
-      setAgreements(prev => prev.map(agreement => {
-        if (agreement.id === agreementId) {
-          return {
-            ...agreement,
-            paidInstallments: agreement.paidInstallments + 1,
-            status: agreement.paidInstallments + 1 >= agreement.installments ? 'completed' : 'active'
-          };
+      try {
+        const agreementAddrs = await listAgreements(address);
+        const items: BNPLAgreement[] = [];
+        for (const addr of agreementAddrs) {
+          const { agreement, installments } = await readAgreement(addr);
+          const totalAmount = Number(agreement.principal) / 1e6; // mUSDC 6 decimals displayed in USD
+          const paid = Number(agreement.paidInstallments);
+          const numInst = Number(agreement.installments);
+          const nextInst = installments.find((i: any) => !i.isPaid);
+          const nextDue = nextInst ? Number(nextInst.dueDate) : 0;
+          const nextAmt = nextInst ? Number(nextInst.amount) : 0;
+          const status: BNPLAgreement['status'] = paid >= numInst ? 'completed' : (nextDue && nextDue < Math.floor(Date.now() / 1000) ? 'overdue' : 'active');
+          items.push({
+            id: addr,
+            merchant: agreement.merchant,
+            amount: totalAmount,
+            installments: numInst,
+            paidInstallments: paid,
+            nextDueDate: nextDue,
+            nextAmount: nextAmt,
+            status,
+            autoRepay: false,
+          });
         }
-        return agreement;
-      }));
+        setAgreements(items);
+      } catch (e) {
+        addAlert({ type: 'error', title: 'Load Failed', message: 'Unable to load agreements.' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [isConnected, address]);
 
-      addAlert({
-        type: 'success',
-        title: 'Payment Successful',
-        message: 'Your payment has been processed successfully.',
-      });
+  const handlePayNow = async (agreementAddr: string) => {
+    try {
+      addAlert({ type: 'info', title: 'Confirm in Wallet', message: 'Approve token and confirm repayment transaction.' });
+
+      // Determine next installment id from current state
+      const target = agreements.find(a => a.id === agreementAddr);
+      if (!target) throw new Error('Agreement not found');
+      const nextId = target.paidInstallments; // sequential ids 0..n-1
+
+      const txHash = await repayInstallment(agreementAddr, nextId);
+
+      addAlert({ type: 'success', title: 'Repayment Sent', message: `Tx: ${txHash.slice(0, 10)}...` });
+
+      // Refresh that agreement from chain
+      const { agreement, installments } = await readAgreement(agreementAddr);
+      const paid = Number(agreement.paidInstallments);
+      const numInst = Number(agreement.installments);
+      const nextInst = installments.find((i: any) => !i.isPaid);
+      const nextDue = nextInst ? Number(nextInst.dueDate) : 0;
+      const nextAmt = nextInst ? Number(nextInst.amount) : 0;
+      const status: BNPLAgreement['status'] = paid >= numInst ? 'completed' : (nextDue && nextDue < Math.floor(Date.now() / 1000) ? 'overdue' : 'active');
+
+      setAgreements(prev => prev.map(a => a.id === agreementAddr ? { ...a, paidInstallments: paid, nextDueDate: nextDue, nextAmount: nextAmt, status } : a));
     } catch (error) {
-      addAlert({
-        type: 'error',
-        title: 'Payment Failed',
-        message: 'Failed to process payment. Please try again.',
-      });
+      addAlert({ type: 'error', title: 'Payment Failed', message: error instanceof Error ? error.message : 'Failed to process payment.' });
     }
   };
 
