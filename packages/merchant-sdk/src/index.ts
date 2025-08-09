@@ -58,19 +58,20 @@ export class MorphCreditSDK {
   private provider: ethers.BrowserProvider | null = null;
   private signer: ethers.JsonRpcSigner | null = null;
   private eventCallbacks: Map<string, Function[]> = new Map();
+  private offersCache: Map<string, Offer> = new Map();
 
   constructor(config: Partial<SDKConfig> = {}, options: SDKOptions = {}) {
     this.config = {
-      rpcUrl: 'https://rpc-testnet.morphl2.io',
+      rpcUrl: 'https://rpc-holesky.morphl2.io',
       contracts: {
-        scoreOracle: addresses.scoreOracle,
-        creditRegistry: '0x0000000000000000000000000000000000000000', // TODO: Add to addresses.json
-        lendingPool: '0x0000000000000000000000000000000000000000', // TODO: Add to addresses.json
-        bnplFactory: '0x0000000000000000000000000000000000000000', // TODO: Add to addresses.json
+        scoreOracle: (addresses as any).scoreOracle,
+        creditRegistry: (addresses as any).creditRegistry,
+        lendingPool: (addresses as any).lendingPool,
+        bnplFactory: (addresses as any).bnplFactory,
       },
-      scoringService: 'https://scoring.morphcredit.xyz',
-      networkId: 17000,
-      gasLimit: 500000,
+      scoringService: 'http://localhost:8787',
+      networkId: 2810,
+      gasLimit: 800000,
       confirmations: 1,
       ...config
     };
@@ -84,6 +85,23 @@ export class MorphCreditSDK {
     };
 
     this.initializeProviders();
+  }
+
+  // Minimal ABIs
+  private static readonly BNPL_FACTORY_ABI = [
+    'function createAgreement(address borrower,address merchant,uint256 principal,uint256 installments,uint256 apr) returns (address)'
+  ];
+  private static readonly BNPL_AGREEMENT_ABI = [
+    'function getAgreement() view returns (tuple(uint256 principal,address borrower,address merchant,uint256 installments,uint256 installmentAmount,uint256 apr,uint256 penaltyRate,uint256[] dueDates,uint8 status,uint256 paidInstallments,uint256 lastPaymentDate,uint256 gracePeriod,uint256 writeOffPeriod))',
+    'function getAllInstallments() view returns (tuple(uint256 id,uint256 amount,uint256 dueDate,bool isPaid,uint256 paidAt,uint256 penaltyAccrued)[])'
+  ];
+
+  private async getSigner(): Promise<ethers.JsonRpcSigner> {
+    if (!this.provider) throw new MorphCreditError(ErrorCodes.WALLET_CONNECTION_FAILED, 'Provider not initialized');
+    if (!this.signer) {
+      this.signer = await this.provider.getSigner();
+    }
+    return this.signer;
   }
 
   private initializeProviders() {
@@ -158,12 +176,54 @@ export class MorphCreditSDK {
         );
       }
 
-      // Convert amount to wei (assuming USDC has 6 decimals)
       const amountInWei = BigInt(Math.floor(request.amount * 1e6));
-
-      // Mock offer generation based on amount
-      // In a real implementation, this would call the scoring service
-      const offers: Offer[] = this.generateMockOffers(request.address, amountInWei);
+      // Call scoring service to get current score/tier
+      const res = await fetch(`${this.config.scoringService.replace(/\/$/, '')}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: request.address }),
+      });
+      if (!res.ok) {
+        throw new MorphCreditError(ErrorCodes.NETWORK_ERROR, `Scoring service error: ${res.status}`);
+      }
+      const json = await res.json();
+      if (!json?.success || !json?.data?.scoring) {
+        throw new MorphCreditError(ErrorCodes.SCORE_NOT_FOUND, 'Score response invalid');
+      }
+      const tier: 'A'|'B'|'C'|'D'|'E' = json.data.scoring.tier;
+      // Map tier to APR bands
+      const tierAprMap: Record<string, number[]> = {
+        A: [0.10, 0.14],
+        B: [0.14, 0.20],
+        C: [0.20, 0.28],
+        D: [0.28, 0.36],
+        E: [0.36, 0.50],
+      };
+      const [aprLow, aprHigh] = tierAprMap[tier] || [0.25, 0.35];
+      const aprChoices = [aprLow, (aprLow + aprHigh) / 2, aprHigh];
+      const now = Math.floor(Date.now() / 1000);
+      const biweekly = 14 * 24 * 60 * 60;
+      const installments = 4;
+      const offers: Offer[] = aprChoices.map((apr, idx) => {
+        const totalCost = BigInt(Math.floor(Number(amountInWei) * (1 + apr)));
+        const installmentAmount = BigInt(Number(totalCost) / installments);
+        const id = `offer_${request.address}_${amountInWei}_${tier}_${idx}`;
+        const offer: Offer = {
+          id,
+          principal: amountInWei,
+          installments,
+          installmentAmount,
+          totalCost,
+          apr,
+          dueDates: [now + biweekly, now + biweekly * 2, now + biweekly * 3, now + biweekly * 4],
+          merchant: request.address,
+          status: 'available',
+          tier,
+          features: { earlyPayoff: true, autoRepay: true },
+        };
+        this.offersCache.set(id, offer);
+        return offer;
+      });
 
       if (this.options.enableLogging) {
         console.log('Generated offers:', offers);
@@ -183,91 +243,32 @@ export class MorphCreditSDK {
     }
   }
 
-  private generateMockOffers(address: string, amount: bigint): Offer[] {
-    const now = Math.floor(Date.now() / 1000);
-    const biweekly = 14 * 24 * 60 * 60; // 14 days in seconds
+  // Removed mock offer generation
 
-    return [
-      {
-        id: `offer_${address}_${amount}_tier_a`,
-        principal: amount,
-        installments: 4,
-        installmentAmount: amount * BigInt(2625) / BigInt(10000), // 26.25% of principal
-        totalCost: amount * BigInt(10500) / BigInt(10000), // 105% of principal
-        apr: 0.20, // 20% APR
-        dueDates: [
-          now + biweekly,
-          now + biweekly * 2,
-          now + biweekly * 3,
-          now + biweekly * 4
-        ],
-        merchant: address,
-        status: 'available',
-        tier: 'A',
-        features: {
-          noLateFees: true,
-          earlyPayoff: true,
-          autoRepay: true
-        }
-      },
-      {
-        id: `offer_${address}_${amount}_tier_b`,
-        principal: amount,
-        installments: 4,
-        installmentAmount: amount * BigInt(2750) / BigInt(10000), // 27.5% of principal
-        totalCost: amount * BigInt(11000) / BigInt(10000), // 110% of principal
-        apr: 0.25, // 25% APR
-        dueDates: [
-          now + biweekly,
-          now + biweekly * 2,
-          now + biweekly * 3,
-          now + biweekly * 4
-        ],
-        merchant: address,
-        status: 'available',
-        tier: 'B',
-        features: {
-          earlyPayoff: true,
-          autoRepay: true
-        }
-      }
-    ];
-  }
-
-  async createAgreement(offerId: string): Promise<TxResult> {
+  async createAgreement(offerId: string, borrowerAddress?: string): Promise<TxResult> {
     try {
-      if (!this.signer) {
-        throw new MorphCreditError(
-          ErrorCodes.WALLET_NOT_CONNECTED,
-          'Wallet not connected'
-        );
-      }
-
-      // Validate offer ID format
-      if (!offerId || !offerId.startsWith('offer_')) {
-        throw new MorphCreditError(
-          ErrorCodes.INVALID_OFFER,
-          'Invalid offer ID'
-        );
-      }
-
-      // Mock transaction result
-      // In a real implementation, this would call the BNPL contract
-      const mockTxResult: TxResult = {
-        success: true,
-        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-        agreementId: `agreement_${offerId}_${Date.now()}`,
-        blockNumber: Math.floor(Math.random() * 1000000),
-        gasUsed: Math.floor(Math.random() * 200000) + 100000,
-        gasPrice: BigInt(Math.floor(Math.random() * 1000000000) + 1000000000)
+      const signer = await this.getSigner();
+      const offer = this.offersCache.get(offerId);
+      if (!offer) throw new MorphCreditError(ErrorCodes.INVALID_OFFER, 'Offer not found in cache');
+      const borrower = borrowerAddress || (await signer.getAddress());
+      const merchant = await signer.getAddress();
+      const fac = new ethers.Contract(this.config.contracts.bnplFactory, MorphCreditSDK.BNPL_FACTORY_ABI, signer);
+      const aprBps = Math.floor(offer.apr * 10000);
+      const tx = await fac.createAgreement(borrower, merchant, offer.principal, offer.installments, aprBps, {
+        gasLimit: this.config.gasLimit,
+      });
+      const receipt = await tx.wait(this.config.confirmations);
+      const txResult: TxResult = {
+        success: receipt?.status === 1,
+        txHash: tx.hash,
+        agreementId: tx.hash, // address emitted in event; for now return hash
+        blockNumber: receipt?.blockNumber ?? 0,
+        gasUsed: Number(receipt?.gasUsed ?? 0n),
+        gasPrice: (tx as any).gasPrice ?? 0n,
+        receipt,
       };
-
-      if (this.options.enableLogging) {
-        console.log('Agreement created:', mockTxResult);
-      }
-
-      this.triggerEvent('agreementCreated', mockTxResult);
-      return mockTxResult;
+      this.triggerEvent('agreementCreated', txResult);
+      return txResult;
     } catch (error) {
       if (error instanceof MorphCreditError) {
         throw error;
@@ -280,22 +281,27 @@ export class MorphCreditSDK {
     }
   }
 
-  async getAgreementStatus(agreementId: string): Promise<AgreementStatus> {
+  async getAgreementStatus(agreementAddress: string): Promise<AgreementStatus> {
     try {
-      // Mock agreement status
-      // In a real implementation, this would query the contract
-      const mockStatus: AgreementStatus = {
-        id: agreementId,
-        status: 'active',
-        paidInstallments: 0,
-        totalInstallments: 4,
-        nextDueDate: Math.floor(Date.now() / 1000) + 14 * 24 * 60 * 60,
-        nextAmount: BigInt(262500000), // 26.25 USDC in wei
-        remainingBalance: BigInt(1000000000), // 1000 USDC in wei
-        delinquencyDays: 0
+      if (!this.provider) throw new MorphCreditError(ErrorCodes.WALLET_CONNECTION_FAILED, 'Provider not initialized');
+      const ag = new ethers.Contract(agreementAddress, MorphCreditSDK.BNPL_AGREEMENT_ABI, this.provider);
+      const a = await ag.getAgreement();
+      const installments = await ag.getAllInstallments();
+      const next = installments.find((i: any) => !i.isPaid);
+      const remaining = Number(a.installments) - Number(a.paidInstallments);
+      const statusNum = Number(a.status);
+      const status: AgreementStatus['status'] = statusNum === 2 ? 'completed' : statusNum === 3 ? 'defaulted' : statusNum === 4 ? 'written_off' : 'active';
+      return {
+        id: agreementAddress,
+        status,
+        paidInstallments: Number(a.paidInstallments),
+        totalInstallments: Number(a.installments),
+        nextDueDate: next ? Number(next.dueDate) : 0,
+        nextAmount: next ? BigInt(next.amount) : BigInt(0),
+        remainingBalance: BigInt(remaining) * BigInt(a.installmentAmount),
+        lastPaymentDate: Number(a.lastPaymentDate),
+        delinquencyDays: 0,
       };
-
-      return mockStatus;
     } catch (error) {
       throw new MorphCreditError(
         ErrorCodes.AGREEMENT_NOT_FOUND,

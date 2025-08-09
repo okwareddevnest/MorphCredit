@@ -17,6 +17,8 @@ const envSchema = z.object({
   MONGODB_DB: z.string().default('morphcredit'),
   RP_ID: z.string().optional(),
   RP_ORIGIN: z.string().optional(),
+  BNPL_FACTORY_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  BNPL_ADMIN_PRIV_KEY: z.string().min(64).optional(),
 });
 
 // Validate environment variables
@@ -34,6 +36,8 @@ export const config = {
   mongodbDb: env.MONGODB_DB,
   rpId: env.RP_ID,
   rpOrigin: env.RP_ORIGIN,
+  bnplFactoryAddress: env.BNPL_FACTORY_ADDRESS,
+  bnplAdminPrivKey: env.BNPL_ADMIN_PRIV_KEY,
   
   // Scoring parameters
   scoring: {
