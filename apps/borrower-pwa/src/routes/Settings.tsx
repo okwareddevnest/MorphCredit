@@ -16,9 +16,10 @@ import { getUserProfile, saveUserProfile } from '../lib/api';
 
 export const SettingsPage: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const search = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState(search.get('tab') || 'general');
   const [settings, setSettings] = useState({
     general: {
       theme: 'dark',
@@ -30,7 +31,7 @@ export const SettingsPage: React.FC = () => {
       sessionTimeout: 30,
       requirePasswordForTransactions: true,
       maxTransactionAmount: 10000,
-      whitelistAddresses: []
+      whitelistAddresses: [] as string[]
     },
     notifications: {
       email: {
@@ -72,11 +73,12 @@ export const SettingsPage: React.FC = () => {
   const handleSaveSettings = async () => {
     if (!address) return;
     try {
-      await saveUserProfile(address, { preferences: settings.general, notifications: {
-        email: { enabled: settings.notifications.email.enabled } as any,
-        push: { enabled: settings.notifications.push.enabled } as any,
-        sms: { enabled: settings.notifications.sms.enabled } as any,
-      } as any, security: settings.security as any });
+      await saveUserProfile(address, {
+        preferences: settings.general,
+        security: settings.security as any,
+        notificationsConfig: settings.notifications as any,
+        privacy: settings.privacy as any,
+      } as any);
       addAlert({ type: 'success', title: 'Settings Saved', message: 'Your settings have been updated successfully.' });
     } catch (e) {
       addAlert({ type: 'error', title: 'Save Failed', message: e instanceof Error ? e.message : 'Failed to save settings.' });
@@ -95,11 +97,14 @@ export const SettingsPage: React.FC = () => {
           timezone: p.preferences?.timezone || prev.general.timezone,
         },
         security: {
-          sessionTimeout: prev.security.sessionTimeout,
-          requirePasswordForTransactions: prev.security.requirePasswordForTransactions,
-          maxTransactionAmount: prev.security.maxTransactionAmount,
-          whitelistAddresses: prev.security.whitelistAddresses,
+          ...prev.security,
+          sessionTimeout: p.security?.sessionTimeout ?? prev.security.sessionTimeout,
+          requirePasswordForTransactions: p.security?.requirePasswordForTransactions ?? prev.security.requirePasswordForTransactions,
+          maxTransactionAmount: p.security?.maxTransactionAmount ?? prev.security.maxTransactionAmount,
+          whitelistAddresses: p.security?.whitelistAddresses ?? prev.security.whitelistAddresses,
         },
+        notifications: p.notificationsConfig ? (p.notificationsConfig as any) : prev.notifications,
+        privacy: p.privacy ? (p.privacy as any) : prev.privacy,
       }));
     }).catch(() => {});
   }, [address]);

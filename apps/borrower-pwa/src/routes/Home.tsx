@@ -12,30 +12,42 @@ import {
   Zap
 } from 'lucide-react';
 import { ConnectWallet } from '../components/ConnectWallet';
+import { useNavigate } from 'react-router-dom';
 import { ScoreCard } from '../components/ScoreCard';
 import { LimitAPR } from '../components/LimitAPR';
 import { Alerts, Alert } from '../components/Alerts';
 import { formatAddress, formatBalance } from '../lib/wallet';
-import { readScore, readRegistryState } from '../lib/contracts';
+import { readScore, readRegistryState, listAgreements, readAgreement } from '../lib/contracts';
+import { getUserProfile } from '../lib/api';
 
 export const Home: React.FC = () => {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
+  const navigate = useNavigate();
   
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [creditScore, setCreditScore] = useState<number | null>(null);
   const [creditLimit, setCreditLimit] = useState<number>(0);
   const [apr, setApr] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [username, setUsername] = useState<string>('');
+  const [stats, setStats] = useState<Array<{
+    title: string;
+    value: string;
+    icon: any;
+    color: string;
+    change?: string;
+    changeType?: 'positive' | 'negative' | 'neutral';
+  }>>([]);
+  const [activities, setActivities] = useState<Array<{
+    type: 'payment';
+    amount: number;
+    merchant: string;
+    timestamp: number;
+    status: 'completed';
+  }>>([]);
 
-  const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
-    const newAlert: Alert = {
-      ...alert,
-      id: Date.now().toString(),
-      timestamp: Date.now(),
-    };
-    setAlerts(prev => [...prev, newAlert]);
-  };
+  // Alerts reserved for future; currently not used on this page
 
   const dismissAlert = (alertId: string) => {
     setAlerts(prev => prev.filter(alert => alert.id !== alertId));
@@ -46,6 +58,13 @@ export const Home: React.FC = () => {
       if (!isConnected || !address) return;
       setIsLoading(true);
       try {
+        // Load display name
+        let profileSecurity: { twoFactor?: boolean; biometric?: boolean } = {};
+        try {
+          const p = await getUserProfile(address);
+          setUsername(p.username || '');
+          profileSecurity = p.security || {};
+        } catch {}
         try {
           const s = await readScore(address);
           setCreditScore(s.score);
@@ -55,46 +74,57 @@ export const Home: React.FC = () => {
           setCreditLimit(Number(st.limit / BigInt(1_000_000)));
           setApr(st.aprBps / 10000);
         }
+
+        // Agreements aggregates
+        try {
+          const addrs = await listAgreements(address);
+          let totalAgreements = addrs.length;
+          let activeAgreements = 0;
+          let totalInstallments = 0;
+          let paidInstallments = 0;
+          const payments: Array<{ type: 'payment'; amount: number; merchant: string; timestamp: number; status: 'completed' }> = [];
+          for (const a of addrs) {
+            try {
+              const { agreement, installments } = await readAgreement(a);
+              totalInstallments += Number(agreement.installments);
+              paidInstallments += Number(agreement.paidInstallments);
+              const statusNum = Number(agreement.status);
+              if (statusNum !== 2) activeAgreements += 1; // 2 = Completed
+              // Collect paid installments for recent activity
+              for (const inst of installments as any[]) {
+                if (inst.isPaid && Number(inst.paidAt) > 0) {
+                  payments.push({
+                    type: 'payment',
+                    amount: Number(inst.amount) / 1_000_000,
+                    merchant: agreement.merchant,
+                    timestamp: Number(inst.paidAt),
+                    status: 'completed',
+                  });
+                }
+              }
+            } catch {}
+          }
+          const paymentPct = totalInstallments > 0 ? Math.round((paidInstallments / totalInstallments) * 100) : 0;
+          const secScore = profileSecurity.biometric && profileSecurity.twoFactor
+            ? 'A+'
+            : (profileSecurity.biometric || profileSecurity.twoFactor) ? 'A' : 'B';
+
+          setStats([
+            { title: 'Total Agreements', value: String(totalAgreements), icon: CreditCard, color: 'text-primary-400' },
+            { title: 'Active Payments', value: String(activeAgreements), icon: Activity, color: 'text-accent-400' },
+            { title: 'Payment History', value: `${paymentPct}%`, icon: TrendingUp, color: 'text-secondary-400' },
+            { title: 'Security Score', value: secScore, icon: Shield, color: 'text-green-400' },
+          ]);
+          payments.sort((a, b) => b.timestamp - a.timestamp);
+          setActivities(payments.slice(0, 5));
+        } catch {}
       } finally {
         setIsLoading(false);
       }
     })();
   }, [isConnected, address]);
 
-  const stats = [
-    {
-      title: 'Total Agreements',
-      value: '12',
-      change: '+2',
-      changeType: 'positive' as const,
-      icon: CreditCard,
-      color: 'text-primary-400'
-    },
-    {
-      title: 'Active Payments',
-      value: '4',
-      change: '-1',
-      changeType: 'negative' as const,
-      icon: Activity,
-      color: 'text-accent-400'
-    },
-    {
-      title: 'Payment History',
-      value: '98%',
-      change: '+2%',
-      changeType: 'positive' as const,
-      icon: TrendingUp,
-      color: 'text-secondary-400'
-    },
-    {
-      title: 'Security Score',
-      value: 'A+',
-      change: '0',
-      changeType: 'neutral' as const,
-      icon: Shield,
-      color: 'text-green-400'
-    }
-  ];
+  // Stats are computed from-chain and from profile security settings
 
   if (!isConnected) {
     return (
@@ -120,7 +150,7 @@ export const Home: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-white mb-2">
-              Welcome back, {address ? formatAddress(address) : 'User'}!
+              Welcome back, {username || (address ? formatAddress(address) : 'User')}!
             </h1>
             <p className="text-dark-300">
               Here's your credit overview and recent activity.
@@ -141,13 +171,7 @@ export const Home: React.FC = () => {
           <ScoreCard 
             score={creditScore} 
             isLoading={isLoading}
-            onRequestScore={() => {
-              addAlert({
-                type: 'info',
-                title: 'Score Request',
-                message: 'Redirecting to score request page...'
-              });
-            }}
+            onRequestScore={() => navigate('/score')}
           />
         </div>
         
@@ -198,7 +222,7 @@ export const Home: React.FC = () => {
         <h2 className="text-xl font-semibold text-white mb-4">Quick Actions</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center space-x-3 p-4 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/30 rounded-lg transition-all duration-200 group">
+          <button onClick={() => navigate('/score')} className="flex items-center space-x-3 p-4 bg-primary-500/10 hover:bg-primary-500/20 border border-primary-500/30 rounded-lg transition-all duration-200 group">
             <div className="w-10 h-10 bg-primary-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <TrendingUp className="w-5 h-5 text-primary-400" />
             </div>
@@ -208,7 +232,7 @@ export const Home: React.FC = () => {
             </div>
           </button>
           
-          <button className="flex items-center space-x-3 p-4 bg-accent-500/10 hover:bg-accent-500/20 border border-accent-500/30 rounded-lg transition-all duration-200 group">
+          <button onClick={() => navigate('/repay')} className="flex items-center space-x-3 p-4 bg-accent-500/10 hover:bg-accent-500/20 border border-accent-500/30 rounded-lg transition-all duration-200 group">
             <div className="w-10 h-10 bg-accent-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <DollarSign className="w-5 h-5 text-accent-400" />
             </div>
@@ -218,7 +242,7 @@ export const Home: React.FC = () => {
             </div>
           </button>
           
-          <button className="flex items-center space-x-3 p-4 bg-secondary-500/10 hover:bg-secondary-500/20 border border-secondary-500/30 rounded-lg transition-all duration-200 group">
+          <button onClick={() => navigate('/settings?tab=security')} className="flex items-center space-x-3 p-4 bg-secondary-500/10 hover:bg-secondary-500/20 border border-secondary-500/30 rounded-lg transition-all duration-200 group">
             <div className="w-10 h-10 bg-secondary-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <Zap className="w-5 h-5 text-secondary-400" />
             </div>
@@ -235,46 +259,27 @@ export const Home: React.FC = () => {
         <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
         
         <div className="space-y-4">
-          {[
-            { type: 'payment', amount: 250, merchant: 'TechStore Pro', date: '2 hours ago', status: 'completed' },
-            { type: 'agreement', amount: 1200, merchant: 'GadgetHub', date: '1 day ago', status: 'active' },
-            { type: 'score', amount: null, merchant: 'Credit Update', date: '3 days ago', status: 'completed' }
-          ].map((activity, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-dark-700/30 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  activity.type === 'payment' ? 'bg-green-500/20' :
-                  activity.type === 'agreement' ? 'bg-primary-500/20' :
-                  'bg-secondary-500/20'
-                }`}>
-                  {activity.type === 'payment' && <DollarSign className="w-4 h-4 text-green-400" />}
-                  {activity.type === 'agreement' && <CreditCard className="w-4 h-4 text-primary-400" />}
-                  {activity.type === 'score' && <TrendingUp className="w-4 h-4 text-secondary-400" />}
+          {activities.length === 0 ? (
+            <div className="p-4 bg-dark-700/30 rounded-lg text-dark-300">No recent activity</div>
+          ) : (
+            activities.map((activity, index) => (
+              <div key={index} className="flex items-center justify-between p-4 bg-dark-700/30 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-green-500/20">
+                    <DollarSign className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">Payment to {activity.merchant}</p>
+                    <p className="text-sm text-dark-400">{new Date(activity.timestamp * 1000).toLocaleString()}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-white">
-                    {activity.type === 'payment' && `Payment to ${activity.merchant}`}
-                    {activity.type === 'agreement' && `New agreement with ${activity.merchant}`}
-                    {activity.type === 'score' && `Credit score updated`}
-                  </p>
-                  <p className="text-sm text-dark-400">{activity.date}</p>
-                </div>
-              </div>
-              
-              <div className="text-right">
-                {activity.amount && (
+                <div className="text-right">
                   <p className="font-semibold text-white">${activity.amount}</p>
-                )}
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  activity.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                  activity.status === 'active' ? 'bg-primary-500/20 text-primary-400' :
-                  'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {activity.status}
-                </span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">{activity.status}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

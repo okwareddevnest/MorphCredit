@@ -20,6 +20,10 @@ export interface UserProfile {
     twoFactor?: boolean;
     autoRepay?: boolean;
     biometric?: boolean;
+    sessionTimeout?: number;
+    requirePasswordForTransactions?: boolean;
+    maxTransactionAmount?: number;
+    whitelistAddresses?: string[];
   };
   preferences?: {
     currency?: string;
@@ -31,6 +35,16 @@ export interface UserProfile {
     credentialID?: string; // base64url
     publicKey?: string; // base64url
     counter?: number;
+  };
+  notificationsConfig?: {
+    email?: { enabled?: boolean; frequency?: string; types?: string[] };
+    push?: { enabled?: boolean; frequency?: string; types?: string[] };
+    sms?: { enabled?: boolean; frequency?: string; types?: string[] };
+  };
+  privacy?: {
+    shareAnalytics?: boolean;
+    shareMarketing?: boolean;
+    shareThirdParty?: boolean;
   };
 }
 

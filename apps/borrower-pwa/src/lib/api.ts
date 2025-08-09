@@ -88,8 +88,17 @@ export interface UserProfile {
   membershipTier?: string;
   memberSinceDays?: number;
   notifications?: { email?: boolean; push?: boolean; sms?: boolean };
-  security?: { twoFactor?: boolean; autoRepay?: boolean; biometric?: boolean };
+  security?: {
+    twoFactor?: boolean; autoRepay?: boolean; biometric?: boolean;
+    sessionTimeout?: number; requirePasswordForTransactions?: boolean; maxTransactionAmount?: number; whitelistAddresses?: string[];
+  };
   preferences?: { currency?: string; language?: string; theme?: string; timezone?: string };
+  notificationsConfig?: {
+    email?: { enabled?: boolean; frequency?: string; types?: string[] };
+    push?: { enabled?: boolean; frequency?: string; types?: string[] };
+    sms?: { enabled?: boolean; frequency?: string; types?: string[] };
+  };
+  privacy?: { shareAnalytics?: boolean; shareMarketing?: boolean; shareThirdParty?: boolean };
 }
 
 export const getUserProfile = async (address: string): Promise<UserProfile> => {
