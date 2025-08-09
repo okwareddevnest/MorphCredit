@@ -278,7 +278,7 @@ export class MorphCreditSDK {
       }
       const aprBps = Math.floor(offer.apr * 10000);
       const tx = await fac.createAgreement(borrower, merchant, offer.principal, offer.installments, aprBps, {
-        gasLimit: this.config.gasLimit,
+        gasLimit: this.config.gasLimit ?? 2_500_000,
       });
       const receipt = await tx.wait(this.config.confirmations);
       // Parse AgreementCreated event for agreement address

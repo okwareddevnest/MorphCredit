@@ -92,7 +92,8 @@ export const Cart: React.FC<CartProps> = ({
           creditRegistry: '0x62179b92bD09Bfc6699646F3394A6595c1E12BB2',
           lendingPool: '0x22D194Bb22f66731421C5F93163a7DFC05D2Ed5f',
           bnplFactory: '0x50e43053510E8f25280d335F5c7F30b15CF13965',
-        }
+        },
+        gasLimit: 2_500_000,
       });
       sdk.updateOptions?.({ skipRoleCheck: true, enableLogging: true } as any);
       let result: TxResult;
