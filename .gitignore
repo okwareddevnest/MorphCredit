@@ -154,11 +154,9 @@ memory/
 .roomodes
 claude-flow.*
 claude-flow
-!CLAUDE.md
-!README.md
 *.md
-!SPEC.md
-!*_SPEC.md
+!README.md
+
 
 # Contracts
 

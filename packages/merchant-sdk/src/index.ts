@@ -89,7 +89,9 @@ export class MorphCreditSDK {
 
   // Minimal ABIs
   private static readonly BNPL_FACTORY_ABI = [
-    'function createAgreement(address borrower,address merchant,uint256 principal,uint256 installments,uint256 apr) returns (address)'
+    'function createAgreement(address borrower,address merchant,uint256 principal,uint256 installments,uint256 apr) returns (address)',
+    'function hasRole(bytes32 role, address account) view returns (bool)',
+    'event AgreementCreated(address indexed borrower, address indexed merchant, address agreement, uint256 principal)'
   ];
   private static readonly BNPL_AGREEMENT_ABI = [
     'function getAgreement() view returns (tuple(uint256 principal,address borrower,address merchant,uint256 installments,uint256 installmentAmount,uint256 apr,uint256 penaltyRate,uint256[] dueDates,uint8 status,uint256 paidInstallments,uint256 lastPaymentDate,uint256 gracePeriod,uint256 writeOffPeriod))',
@@ -253,15 +255,41 @@ export class MorphCreditSDK {
       const borrower = borrowerAddress || (await signer.getAddress());
       const merchant = await signer.getAddress();
       const fac = new ethers.Contract(this.config.contracts.bnplFactory, MorphCreditSDK.BNPL_FACTORY_ABI, signer);
+      // Check FACTORY_ROLE on caller
+      const FACTORY_ROLE = ethers.id('FACTORY_ROLE');
+      const caller = await signer.getAddress();
+      const hasRole: boolean = await fac.hasRole(FACTORY_ROLE, caller);
+      if (!hasRole) {
+        throw new MorphCreditError(ErrorCodes.AGREEMENT_FAILED, 'Merchant is not authorized (FACTORY_ROLE missing)');
+      }
       const aprBps = Math.floor(offer.apr * 10000);
       const tx = await fac.createAgreement(borrower, merchant, offer.principal, offer.installments, aprBps, {
         gasLimit: this.config.gasLimit,
       });
       const receipt = await tx.wait(this.config.confirmations);
+      // Parse AgreementCreated event for agreement address
+      let agreementAddress: string = tx.hash;
+      try {
+        const iface = new ethers.Interface(MorphCreditSDK.BNPL_FACTORY_ABI);
+        const factoryAddr = this.config.contracts.bnplFactory.toLowerCase();
+        const logs = (receipt?.logs ?? []).filter((l: any) => l?.address?.toLowerCase() === factoryAddr);
+        for (const log of logs) {
+          try {
+            const parsed = iface.parseLog({ topics: log.topics, data: log.data });
+            if (parsed?.name === 'AgreementCreated') {
+              const args: any = parsed.args as any;
+              agreementAddress = (args.agreement ?? args[2]) as string;
+              break;
+            }
+          } catch {
+            // skip non-matching logs
+          }
+        }
+      } catch {}
       const txResult: TxResult = {
         success: receipt?.status === 1,
         txHash: tx.hash,
-        agreementId: tx.hash, // address emitted in event; for now return hash
+        agreementId: agreementAddress,
         blockNumber: receipt?.blockNumber ?? 0,
         gasUsed: Number(receipt?.gasUsed ?? 0n),
         gasPrice: (tx as any).gasPrice ?? 0n,

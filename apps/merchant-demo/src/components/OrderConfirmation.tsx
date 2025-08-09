@@ -180,7 +180,7 @@ Thank you for your purchase!
             </button>
             
             <button
-              onClick={() => window.open(`https://etherscan.io/tx/${order.txHash}`, '_blank')}
+              onClick={() => window.open(`https://explorer-holesky.morphl2.io/tx/${order.txHash}`, '_blank')}
               className="flex-1 flex items-center justify-center space-x-2 py-3 px-4 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />

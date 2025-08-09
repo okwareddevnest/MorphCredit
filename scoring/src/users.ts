@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import { getCollection } from './db';
 
 export interface UserProfile {
@@ -48,30 +46,7 @@ export interface UserProfile {
   };
 }
 
-type UserStoreShape = Record<string, UserProfile>;
-
-const DATA_DIR = path.resolve(__dirname, '../data');
-const STORE_FILE = path.join(DATA_DIR, 'users.json');
-
-function ensureStore() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(STORE_FILE)) fs.writeFileSync(STORE_FILE, JSON.stringify({}), 'utf-8');
-}
-
-function readStore(): UserStoreShape {
-  ensureStore();
-  try {
-    const raw = fs.readFileSync(STORE_FILE, 'utf-8');
-    return JSON.parse(raw) as UserStoreShape;
-  } catch {
-    return {} as UserStoreShape;
-  }
-}
-
-function writeStore(data: UserStoreShape) {
-  ensureStore();
-  fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
-}
+// Removed legacy file store helpers; using MongoDB instead
 
 export async function getUser(address: string): Promise<UserProfile> {
   const col = await getCollection('users');

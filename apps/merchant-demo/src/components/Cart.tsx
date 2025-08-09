@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
 import { MorphCreditButton } from '@morphcredit/merchant-sdk';
+import type { TxResult } from '@morphcredit/merchant-sdk';
 
 interface Product {
   id: number;
@@ -36,30 +37,21 @@ export const Cart: React.FC<CartProps> = ({
   onCheckout,
   totalPrice
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleCheckout = async () => {
-    setIsProcessing(true);
-    
-    // Simulate processing delay
-    setTimeout(() => {
-      const orderData = {
-        id: `order-${Date.now()}`,
-        items: items.map(item => ({
-          name: item.product.name,
-          price: item.product.price,
-          quantity: item.quantity
-        })),
-        total: totalPrice,
-        txHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-        agreementId: `agreement-${Date.now()}`,
-        status: 'confirmed' as const,
-        timestamp: Date.now()
-      };
-      
-      onCheckout(orderData);
-      setIsProcessing(false);
-    }, 2000);
+  const handleSuccess = (result: TxResult) => {
+    const orderData = {
+      id: `order-${Date.now()}`,
+      items: items.map(item => ({
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity
+      })),
+      total: totalPrice,
+      txHash: result.txHash,
+      agreementId: result.agreementId,
+      status: 'confirmed' as const,
+      timestamp: Date.now()
+    };
+    onCheckout(orderData);
   };
 
   return (
@@ -154,13 +146,9 @@ export const Cart: React.FC<CartProps> = ({
               {/* MorphCredit Button */}
               <MorphCreditButton
                 amount={totalPrice}
-                onSuccess={(result) => {
-                  console.log('Payment successful:', result);
-                  handleCheckout();
-                }}
+                onSuccess={handleSuccess}
                 onError={(error) => {
                   console.error('Payment failed:', error);
-                  setIsProcessing(false);
                 }}
                 onOffersLoaded={(offers) => {
                   console.log('Offers loaded:', offers);
@@ -171,18 +159,16 @@ export const Cart: React.FC<CartProps> = ({
                 className="w-full"
                 variant="primary"
                 size="lg"
-                loading={isProcessing}
                 showOffers={true}
               >
-                {isProcessing ? 'Processing...' : `Pay $${totalPrice.toLocaleString()} with MorphCredit`}
+                {`Pay $${totalPrice.toLocaleString()} with MorphCredit`}
               </MorphCreditButton>
               
               <button
-                onClick={handleCheckout}
-                disabled={isProcessing}
-                className="w-full py-3 px-4 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={onClose}
+                className="w-full py-3 px-4 bg-dark-700 text-white rounded-lg hover:bg-dark-600 transition-colors"
               >
-                {isProcessing ? 'Processing...' : 'Continue Shopping'}
+                Continue Shopping
               </button>
             </div>
           </div>

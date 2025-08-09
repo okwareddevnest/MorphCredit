@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: morphcredit-scoring
+    env: node
+    plan: starter
+    buildCommand: pnpm -w build && pnpm --filter @morphcredit/scoring build
+    startCommand: pnpm --filter @morphcredit/scoring start
+    autoDeploy: true
+    envVars:
+      - key: MORPH_RPC
+        sync: false
+      - key: SCORE_ORACLE_ADDRESS
+        sync: false
+      - key: ORACLE_PRIV_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        sync: false
+      - key: RP_ID
+        sync: false
+      - key: RP_ORIGIN
+        sync: false
+      - key: PORT
+        value: 10000
+
+

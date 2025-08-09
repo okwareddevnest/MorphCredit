@@ -234,17 +234,19 @@ app.post('/user/:address/avatar', upload.single('avatar'), async (req: Request, 
 app.get('/avatar/:address', async (req: Request, res: Response) => {
   try {
     const addr = (req.params as any).address as string | undefined;
-    if (!addr) return res.status(400).end();
+    if (!addr) { res.status(400).end(); return; }
     const bucket = await getBucket();
     const cursor = bucket.find({ filename: addr.toLowerCase() });
     const files = await cursor.toArray();
-    if (!files.length) return res.status(404).end();
+    if (!files.length) { res.status(404).end(); return; }
     res.setHeader('Content-Type', (files[0] as any).contentType || 'image/png');
     const stream = bucket.openDownloadStreamByName(addr.toLowerCase());
     stream.on('error', () => res.status(404).end());
     stream.pipe(res);
+    return;
   } catch (e) {
     res.status(500).end();
+    return;
   }
 });
 
@@ -493,7 +495,7 @@ app.use('*', (_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
     error: 'Endpoint not found',
-    availableEndpoints: ['GET /health', 'POST /score', 'POST /verify'],
+    availableEndpoints: ['GET /health', 'POST /score', 'POST /verify', 'POST /publish', 'GET/POST /user/:address', 'POST /user/:address/avatar', 'POST /webauthn/*'],
   });
 });
 

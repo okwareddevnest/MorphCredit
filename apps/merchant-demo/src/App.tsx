@@ -6,8 +6,6 @@ import {
   BarChart3, 
   Settings,
   Home,
-  Menu,
-  X,
   Search,
   Filter
 } from 'lucide-react';
@@ -33,7 +31,7 @@ interface CartItem {
   quantity: number;
 }
 
-export const App: React.FC = () => {
+const App: React.FC = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false);
@@ -183,7 +181,7 @@ export const App: React.FC = () => {
       <ParticleBackground />
       
       {/* Header */}
-      <header className="relative z-10 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50">
+      <header className="relative z-10 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -236,7 +234,7 @@ export const App: React.FC = () => {
 
       <div className="flex">
         {/* Sidebar Navigation */}
-        <aside className="relative z-10 w-64 bg-dark-900/80 backdrop-blur-md border-r border-dark-700/50 min-h-screen">
+        <aside className="relative z-10 w-64 bg-dark-900/80 backdrop-blur-md border-r border-dark-700/50 min-h-screen sticky top-16">
           <nav className="p-4">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -426,4 +424,6 @@ export const App: React.FC = () => {
       )}
     </div>
   );
-}; 
+};
+
+export default App;

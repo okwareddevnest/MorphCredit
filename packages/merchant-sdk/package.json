@@ -59,5 +59,8 @@
     "type": "git",
     "url": "https://github.com/okwareddevnest/MorphCredit.git",
     "directory": "packages/merchant-sdk"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 } 
