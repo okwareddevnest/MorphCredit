@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Minus, Plus, Trash2 } from 'lucide-react';
+import { ethers } from 'ethers';
 import { MorphCreditSDK } from 'morphcredit-merchant-sdk';
 import type { TxResult } from 'morphcredit-merchant-sdk';
 
@@ -86,6 +87,35 @@ export const Cart: React.FC<CartProps> = ({
       }
       const offers = await sdk.getOffers({ address, amount: totalPrice });
       if (!offers.length) throw new Error('No offers available');
+      // Pre-check factory readiness and role to avoid opaque RPC errors
+      try {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
+        const facAddr = '0x50e43053510E8f25280d335F5c7F30b15CF13965';
+        const reader = new ethers.Contract(
+          facAddr,
+          [
+            'function FACTORY_ROLE() view returns (bytes32)',
+            'function hasRole(bytes32,address) view returns (bool)',
+            'function getImplementation() view returns (address)'
+          ],
+          provider
+        );
+        const role = await reader.FACTORY_ROLE();
+        const [impl, hasRole] = await Promise.all([
+          reader.getImplementation().catch(() => ethers.ZeroAddress),
+          reader.hasRole(role, address).catch(() => false),
+        ]);
+        if (impl === ethers.ZeroAddress) {
+          alert('BNPLFactory proxy is not initialized (implementation not set).');
+          setIsPaying(false);
+          return;
+        }
+        if (!hasRole) {
+          alert('This wallet is not authorized to create agreements (FACTORY_ROLE missing). Use an authorized merchant wallet.');
+          setIsPaying(false);
+          return;
+        }
+      } catch {}
       sdk.updateConfig({
         contracts: {
           scoreOracle: '0xd9Dc385246308FfBEBdEAc210F4c6B2E26Eb096d',
