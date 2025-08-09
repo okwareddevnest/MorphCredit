@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { Alerts, Alert } from '../components/Alerts';
 import { getUserProfile, saveUserProfile } from '../lib/api';
+import { listAgreements } from '../lib/contracts';
+import { readScore } from '../lib/contracts';
 
 export const Profile: React.FC = () => {
   const { address, isConnected } = useAccount();
@@ -22,10 +24,16 @@ export const Profile: React.FC = () => {
   const [formData, setFormData] = useState({
     email: '',
     phone: '',
+    username: '',
+    avatarUrl: '',
     notifications: { email: true, push: true, sms: false },
     security: { twoFactor: false, autoRepay: true, biometric: false },
     preferences: { currency: 'USD', language: 'en', theme: 'dark', timezone: 'UTC' }
   });
+  const [membershipTier, setMembershipTier] = useState<string>('Standard');
+  const [memberSince, setMemberSince] = useState<string>('—');
+  const [creditScore, setCreditScore] = useState<number | null>(null);
+  const [agreementsCount, setAgreementsCount] = useState<number>(0);
 
   const addAlert = (alert: Omit<Alert, 'id' | 'timestamp'>) => {
     const newAlert: Alert = {
@@ -78,6 +86,8 @@ export const Profile: React.FC = () => {
       setFormData({
         email: p.email || '',
         phone: p.phone || '',
+        username: p.username || '',
+        avatarUrl: p.avatarUrl || '',
         notifications: {
           email: p.notifications?.email ?? true,
           push: p.notifications?.push ?? true,
@@ -95,7 +105,13 @@ export const Profile: React.FC = () => {
           timezone: p.preferences?.timezone ?? 'UTC',
         }
       });
+      if (p.createdAt) setMemberSince(new Date(p.createdAt * 1000).toLocaleDateString());
+      if (p.membershipTier) setMembershipTier(p.membershipTier);
     }).catch(() => {});
+
+    // Load score and agreements count
+    readScore(address).then((s) => setCreditScore(s.score || null)).catch(() => {});
+    listAgreements(address).then((arr) => setAgreementsCount(arr.length)).catch(() => {});
   }, [address]);
 
   return (
@@ -156,6 +172,19 @@ export const Profile: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-dark-300 mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  disabled={!isEditing}
+                  placeholder="Enter display name"
+                  className="w-full px-4 py-3 bg-dark-700/50 border border-dark-600 rounded-lg text-white placeholder-dark-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-dark-300 mb-2">
                   Email Address
@@ -285,25 +314,28 @@ export const Profile: React.FC = () => {
                       });
                       if (e.target.checked && address) {
                         try {
-                          // Request challenge
-                          const resp = await fetch((import.meta as any).env.VITE_SCORING_URL + `/webauthn/challenge/${address}`, { method: 'POST' });
-                          const { data } = await resp.json();
-                          const challenge = Uint8Array.from(Buffer.from(data.challenge.slice(2), 'hex'));
-                          const cred = await navigator.credentials.create({
-                            publicKey: {
-                              challenge,
-                              rp: { name: 'MorphCredit' },
-                              user: { id: new TextEncoder().encode(address), name: address, displayName: address },
-                              pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
-                              authenticatorSelection: { userVerification: 'preferred' },
-                              timeout: 60000,
-                            }
-                          } as any);
-                          const credId = (cred as any).id;
-                          const pubKey = '';
-                          await fetch((import.meta as any).env.VITE_SCORING_URL + `/webauthn/register/${address}`, {
+                          const base = (import.meta as any).env.VITE_SCORING_URL || 'http://localhost:8787';
+                          const resp = await fetch(`${base}/webauthn/challenge/${address}`, { method: 'POST' });
+                          const { data: options } = await resp.json();
+                          // Convert base64url properties
+                          const publicKey: any = options;
+                          publicKey.challenge = Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+                          publicKey.user.id = new TextEncoder().encode(address);
+                          const credential: any = await navigator.credentials.create({ publicKey });
+
+                          const attestationResponse = {
+                            id: credential.id,
+                            type: credential.type,
+                            rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+                            response: {
+                              clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+                              attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
+                            },
+                          };
+
+                          await fetch(`${base}/webauthn/register/${address}`, {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ credentialID: credId, publicKey: pubKey })
+                            body: JSON.stringify(attestationResponse)
                           });
                         } catch {}
                       }
@@ -323,24 +355,59 @@ export const Profile: React.FC = () => {
           {/* Profile Card */}
           <div className="bg-dark-800/50 backdrop-blur-sm rounded-xl p-6 border border-dark-700/50">
             <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <User className="w-10 h-10 text-white" />
+              <div className="w-20 h-20 rounded-full mx-auto mb-4 overflow-hidden bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center">
+                {formData.avatarUrl ? (
+                  <img
+                    src={formData.avatarUrl}
+                    alt="avatar"
+                    className="w-full h-full object-cover"
+                    crossOrigin="anonymous"
+                    onError={() => setFormData((prev) => ({ ...prev, avatarUrl: '' }))}
+                  />
+                ) : (
+                  <User className="w-10 h-10 text-white" />
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-white mb-1">John Doe</h3>
-              <p className="text-dark-400 text-sm mb-4">Premium Member</p>
+              {isEditing && (
+                <div className="mb-4">
+                  <label className="block text-sm text-dark-300 mb-2">Change Avatar</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !address) return;
+                      const base = (import.meta as any).env.VITE_SCORING_URL || 'http://localhost:8787';
+                      const fd = new FormData();
+                      fd.append('avatar', file);
+                      const resp = await fetch(`${base}/user/${address}/avatar`, { method: 'POST', body: fd });
+                      const json = await resp.json();
+                      if (json?.success) {
+                        setFormData((prev) => ({ ...prev, avatarUrl: json.data?.avatarUrl || prev.avatarUrl }));
+                        addAlert({ type: 'success', title: 'Avatar Updated', message: 'Your avatar has been updated.' });
+                      } else {
+                        addAlert({ type: 'error', title: 'Upload Failed', message: json?.error || 'Unable to upload avatar.' });
+                      }
+                    }}
+                    className="block w-full text-sm text-dark-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-dark-700 file:text-white hover:file:bg-dark-600"
+                  />
+                </div>
+              )}
+              <h3 className="text-lg font-semibold text-white mb-1">{formData.username || (address ? `${address.slice(0,6)}…${address.slice(-4)}` : '—')}</h3>
+              <p className="text-dark-400 text-sm mb-4">{membershipTier} Member</p>
               
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-dark-400">Member Since</span>
-                  <span className="text-white">Jan 2025</span>
+                  <span className="text-white">{memberSince}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-400">Credit Score</span>
-                  <span className="text-accent-400 font-semibold">750</span>
+                  <span className="text-accent-400 font-semibold">{creditScore ?? '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-400">Total Agreements</span>
-                  <span className="text-white">12</span>
+                  <span className="text-white">{agreementsCount}</span>
                 </div>
               </div>
             </div>

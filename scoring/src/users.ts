@@ -1,10 +1,16 @@
 import fs from 'fs';
 import path from 'path';
+import { getCollection } from './db';
 
 export interface UserProfile {
   address: string;
   email?: string;
   phone?: string;
+  username?: string;
+  avatarUrl?: string;
+  createdAt?: number; // unix seconds
+  membershipTier?: string;
+  challenge?: string | null;
   notifications?: {
     email?: boolean;
     push?: boolean;
@@ -26,7 +32,6 @@ export interface UserProfile {
     publicKey?: string; // base64url
     counter?: number;
   };
-  challenge?: string; // for WebAuthn flows
 }
 
 type UserStoreShape = Record<string, UserProfile>;
@@ -54,24 +59,22 @@ function writeStore(data: UserStoreShape) {
   fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), 'utf-8');
 }
 
-export function getUser(address: string): UserProfile {
-  const store = readStore();
+export async function getUser(address: string): Promise<UserProfile> {
+  const col = await getCollection('users');
   const key = address.toLowerCase();
-  if (!store[key]) {
-    store[key] = { address: key };
-    writeStore(store);
-  }
-  return store[key];
+  const doc = await col.findOne({ address: key });
+  if (doc && (doc as any)['address']) return doc as unknown as UserProfile;
+  const fresh: UserProfile = { address: key, createdAt: Math.floor(Date.now() / 1000) };
+  await col.insertOne(fresh as any);
+  return fresh;
 }
 
-export function updateUser(address: string, partial: Partial<UserProfile>): UserProfile {
-  const store = readStore();
+export async function updateUser(address: string, partial: Partial<UserProfile>): Promise<UserProfile> {
+  const col = await getCollection('users');
   const key = address.toLowerCase();
-  const existing = store[key] || { address: key };
-  const updated: UserProfile = { ...existing, ...partial, address: key };
-  store[key] = updated;
-  writeStore(store);
-  return updated;
+  await col.updateOne({ address: key }, { $set: partial, $setOnInsert: { address: key } }, { upsert: true });
+  const updated = await col.findOne({ address: key });
+  return (updated as unknown as UserProfile) || { address: key };
 }
 
 

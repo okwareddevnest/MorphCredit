@@ -82,6 +82,11 @@ export interface UserProfile {
   address: string;
   email?: string;
   phone?: string;
+  username?: string;
+  avatarUrl?: string;
+  createdAt?: number;
+  membershipTier?: string;
+  memberSinceDays?: number;
   notifications?: { email?: boolean; push?: boolean; sms?: boolean };
   security?: { twoFactor?: boolean; autoRepay?: boolean; biometric?: boolean };
   preferences?: { currency?: string; language?: string; theme?: string; timezone?: string };

@@ -14,12 +14,13 @@ export const InstallPWAButton: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  if (!visible) return null;
+  const canPrompt = !!deferredPrompt;
+  if (!visible || !canPrompt) return null;
 
   const install = async () => {
     try {
       if (!deferredPrompt) return;
-      deferredPrompt.prompt();
+      await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome !== 'accepted') {
         // user dismissed

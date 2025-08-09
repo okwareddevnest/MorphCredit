@@ -13,6 +13,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   CORS_ORIGIN: z.string().default('*'),
   SCORE_ORACLE_ADDRESS: z.string().regex(/^0x[a-fA-F0-9]{40}$/).optional(),
+  MONGODB_URI: z.string().optional(),
+  MONGODB_DB: z.string().default('morphcredit'),
+  RP_ID: z.string().optional(),
+  RP_ORIGIN: z.string().optional(),
 });
 
 // Validate environment variables
@@ -26,6 +30,10 @@ export const config = {
   logLevel: env.LOG_LEVEL,
   corsOrigin: env.CORS_ORIGIN,
   scoreOracleAddress: env.SCORE_ORACLE_ADDRESS,
+  mongodbUri: env.MONGODB_URI,
+  mongodbDb: env.MONGODB_DB,
+  rpId: env.RP_ID,
+  rpOrigin: env.RP_ORIGIN,
   
   // Scoring parameters
   scoring: {

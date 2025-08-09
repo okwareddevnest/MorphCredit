@@ -1,4 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import multer from 'multer';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -11,7 +15,15 @@ import { FeatureExtractor } from './features';
 import { ScoringModel } from './model';
 import { ReportGenerator, ScoreRequestSchema, ScoreReportSchema } from './report';
 import { getUser, updateUser, UserProfile } from './users';
+import { isoBase64URL } from '@simplewebauthn/server/helpers';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from '@simplewebauthn/server';
 import ScoreOracleAbi from './abis/ScoreOracle.json';
+import { getBucket } from './db';
 
 // Initialize logger
 const logger = winston.createLogger({
@@ -39,6 +51,7 @@ const reportGenerator = new ReportGenerator(config.oraclePrivKey);
 
 // Create Express app
 const app: express.Express = express();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Middleware
 app.use(helmet());
@@ -48,6 +61,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 // Request logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
@@ -160,47 +174,197 @@ app.post('/score', async (req: Request, res: Response) => {
 });
 
 // Profile endpoints
-app.get('/user/:address', (req: Request, res: Response) => {
+app.get('/user/:address', async (req: Request, res: Response) => {
   try {
-    const { address } = req.params;
-    const profile = getUser(address);
-    res.json({ success: true, data: profile });
+    const addr = String((req.params as any).address || '');
+    const profile = await getUser(addr);
+    // compute dynamic values
+    const now = Math.floor(Date.now() / 1000);
+    const days = profile.createdAt ? Math.max(1, Math.floor((now - profile.createdAt) / 86400)) : 1;
+    // membership tier heuristic: has webauthn = Premium, else Standard
+    const membershipTier = profile.membershipTier || (profile.webauthn?.credentialID ? 'Premium' : 'Standard');
+    res.json({ success: true, data: { ...profile, membershipTier, memberSinceDays: days } });
   } catch (e) {
     res.status(500).json({ success: false, error: 'Failed to fetch user' });
   }
 });
 
-app.post('/user/:address', (req: Request, res: Response) => {
+app.post('/user/:address', async (req: Request, res: Response) => {
   try {
-    const { address } = req.params;
+    const addr = String((req.params as any).address || '');
     const partial = req.body as Partial<UserProfile>;
-    const saved = updateUser(address, partial);
+    const saved = await updateUser(addr, partial);
     res.json({ success: true, data: saved });
   } catch (e) {
     res.status(500).json({ success: false, error: 'Failed to update user' });
   }
 });
 
-// Minimal WebAuthn-like endpoints (challenge storage only; actual verification would require RP config)
-app.post('/webauthn/challenge/:address', (req: Request, res: Response) => {
+// Avatar upload
+app.post('/user/:address/avatar', upload.single('avatar'), async (req: Request, res: Response) => {
   try {
-    const { address } = req.params;
-    const challenge = ethers.hexlify(ethers.randomBytes(32));
-    const profile = updateUser(address, { challenge });
-    res.json({ success: true, data: { challenge: profile.challenge } });
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) { res.status(400).json({ success: false, error: 'Missing address' }); return; }
+    const file = (req as any).file as any;
+    if (!file || !file.buffer) return res.status(400).json({ success: false, error: 'No file' });
+
+    const bucket = await getBucket();
+    // Remove existing files for this user
+    const existing = await bucket.find({ filename: addr.toLowerCase() }).toArray();
+    for (const f of existing) {
+      try { await bucket.delete(f._id); } catch {}
+    }
+
+    const uploadStream = bucket.openUploadStream(addr.toLowerCase(), { contentType: file.mimetype || 'image/png' });
+    uploadStream.end(file.buffer);
+    await new Promise((resolve, reject) => {
+      uploadStream.on('finish', resolve);
+      uploadStream.on('error', reject);
+    });
+
+    const publicUrl = `${req.protocol}://${req.get('host')}/avatar/${addr.toLowerCase()}`;
+    const saved = await updateUser(addr, { avatarUrl: publicUrl });
+    return res.json({ success: true, data: saved });
   } catch (e) {
-    res.status(500).json({ success: false, error: 'Failed to create challenge' });
+    return res.status(500).json({ success: false, error: 'Failed to upload avatar' });
   }
 });
 
-app.post('/webauthn/register/:address', (req: Request, res: Response) => {
+// Serve avatar from GridFS
+app.get('/avatar/:address', async (req: Request, res: Response) => {
   try {
-    const { address } = req.params;
-    const { credentialID, publicKey } = req.body as { credentialID: string; publicKey: string };
-    const saved = updateUser(address, { webauthn: { credentialID, publicKey, counter: 0 }, security: { biometric: true } });
-    res.json({ success: true, data: saved });
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) return res.status(400).end();
+    const bucket = await getBucket();
+    const cursor = bucket.find({ filename: addr.toLowerCase() });
+    const files = await cursor.toArray();
+    if (!files.length) return res.status(404).end();
+    res.setHeader('Content-Type', (files[0] as any).contentType || 'image/png');
+    const stream = bucket.openDownloadStreamByName(addr.toLowerCase());
+    stream.on('error', () => res.status(404).end());
+    stream.pipe(res);
   } catch (e) {
-    res.status(500).json({ success: false, error: 'Failed to save credential' });
+    res.status(500).end();
+  }
+});
+
+// Minimal WebAuthn-like endpoints (challenge storage only; actual verification would require RP config)
+app.post('/webauthn/challenge/:address', async (req: Request, res: Response) => {
+  try {
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) {
+      res.status(400).json({ success: false, error: 'Missing address' });
+      return;
+    }
+    const rpID = (config.rpId || req.hostname) as string;
+    const rpName = 'MorphCredit';
+    const options = await generateRegistrationOptions({
+      rpID,
+      rpName,
+      userID: addr as any,
+      userName: addr,
+      timeout: 60000,
+      attestationType: 'none',
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+    } as any);
+    await updateUser(addr, { challenge: options.challenge });
+    return res.json({ success: true, data: options });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Failed to create challenge' });
+  }
+});
+
+app.post('/webauthn/register/:address', async (req: Request, res: Response) => {
+  try {
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) {
+      res.status(400).json({ success: false, error: 'Missing address' });
+      return;
+    }
+    const body = req.body;
+    const profile = await getUser(addr);
+    const expectedChallenge = (profile.challenge || '') as string;
+    const rpID = (config.rpId || req.hostname) as string;
+    const origin = (config.rpOrigin || `${req.protocol}://${req.get('host')}`) as string;
+    const verification = await verifyRegistrationResponse({
+      response: body,
+      expectedRPID: rpID,
+      expectedOrigin: origin,
+      expectedChallenge,
+    } as any);
+    if (!verification.verified || !verification.registrationInfo) {
+      return res.status(400).json({ success: false, error: 'Verification failed' });
+    }
+    const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+    const credIDB64 = isoBase64URL.fromBuffer(credentialID as unknown as Uint8Array);
+    const pubKeyB64 = isoBase64URL.fromBuffer(credentialPublicKey as unknown as Uint8Array);
+    const saved = await updateUser(addr, {
+      webauthn: { credentialID: credIDB64, publicKey: pubKeyB64, counter },
+      security: { ...(profile.security || {}), biometric: true },
+      challenge: null,
+    });
+    return res.json({ success: true, data: saved });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Failed to save credential' });
+  }
+});
+
+// Authentication (assertion) flow
+app.post('/webauthn/auth-challenge/:address', async (req: Request, res: Response) => {
+  try {
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) return res.status(400).json({ success: false, error: 'Missing address' });
+    const rpID = (config.rpId || req.hostname) as string;
+    const profile = await getUser(addr);
+    const allow: any[] = [];
+    if (profile.webauthn?.credentialID) {
+      allow.push({ id: isoBase64URL.toBuffer(profile.webauthn.credentialID), type: 'public-key' });
+    }
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: 'preferred',
+      allowCredentials: allow,
+      timeout: 60000,
+    } as any);
+    await updateUser(addr, { challenge: options.challenge });
+    return res.json({ success: true, data: options });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Failed to create auth challenge' });
+  }
+});
+
+app.post('/webauthn/authenticate/:address', async (req: Request, res: Response) => {
+  try {
+    const addr = (req.params as any).address as string | undefined;
+    if (!addr) return res.status(400).json({ success: false, error: 'Missing address' });
+    const body = req.body;
+    const profile = await getUser(addr);
+    if (!profile.webauthn?.credentialID || !profile.webauthn.publicKey) {
+      return res.status(400).json({ success: false, error: 'No credential registered' });
+    }
+    const expectedChallenge = (profile.challenge || '') as string;
+    const rpID = (config.rpId || req.hostname) as string;
+    const origin = (config.rpOrigin || `${req.protocol}://${req.get('host')}`) as string;
+    const verification = await verifyAuthenticationResponse({
+      response: body,
+      expectedRPID: rpID,
+      expectedOrigin: origin,
+      expectedChallenge,
+      authenticator: {
+        credentialID: isoBase64URL.toBuffer(profile.webauthn.credentialID),
+        credentialPublicKey: isoBase64URL.toBuffer(profile.webauthn.publicKey),
+        counter: profile.webauthn.counter || 0,
+        transports: undefined,
+      },
+    } as any);
+    if (!verification.verified || !verification.authenticationInfo) {
+      return res.status(400).json({ success: false, error: 'Authentication failed' });
+    }
+    const { newCounter } = verification.authenticationInfo;
+    await updateUser(addr, { webauthn: { ...profile.webauthn, counter: newCounter }, challenge: null });
+    return res.json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: 'Authentication error' });
   }
 });
 
