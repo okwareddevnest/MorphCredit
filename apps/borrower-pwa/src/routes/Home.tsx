@@ -11,6 +11,7 @@ import {
   Shield,
   Zap
 } from 'lucide-react';
+import { ConnectWallet } from '../components/ConnectWallet';
 import { ScoreCard } from '../components/ScoreCard';
 import { LimitAPR } from '../components/LimitAPR';
 import { Alerts, Alert } from '../components/Alerts';
@@ -96,14 +97,13 @@ export const Home: React.FC = () => {
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-dark-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-white mb-2">
-            Wallet Not Connected
-          </h2>
-          <p className="text-dark-400">
-            Please connect your wallet to view your dashboard.
-          </p>
+        <div className="text-center space-y-6">
+          <AlertCircle className="w-16 h-16 text-dark-400 mx-auto" />
+          <div>
+            <h2 className="text-2xl font-semibold text-white mb-2">Wallet Not Connected</h2>
+            <p className="text-dark-400 mb-4">Connect to Morph Holesky to access your dashboard.</p>
+            <div className="flex items-center justify-center"><ConnectWallet /></div>
+          </div>
         </div>
       </div>
     );

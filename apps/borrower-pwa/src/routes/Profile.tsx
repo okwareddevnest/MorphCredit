@@ -293,7 +293,7 @@ export const Profile: React.FC = () => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-dark-400">Member Since</span>
-                  <span className="text-white">Jan 2024</span>
+                  <span className="text-white">Jan 2025</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-dark-400">Credit Score</span>

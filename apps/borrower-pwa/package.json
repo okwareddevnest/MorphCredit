@@ -10,14 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@reown/appkit": "^1.7.18",
+    "@reown/appkit-adapter-wagmi": "^1.7.18",
+    "@wagmi/core": "^2.12.21",
+    "@tanstack/react-query": "^4.40.1",
+    "ethers": "^6.8.1",
+    "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
-    "wagmi": "^1.4.7",
-    "viem": "^1.19.9",
-    "@tanstack/react-query": "^4.29.5",
-    "ethers": "^6.8.1",
-    "lucide-react": "^0.294.0"
+    "viem": "^2.12.5",
+    "wagmi": "^2.12.21"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
@@ -34,4 +37,4 @@
     "typescript": "^5.2.2",
     "vite": "^5.0.8"
   }
-} 
+}

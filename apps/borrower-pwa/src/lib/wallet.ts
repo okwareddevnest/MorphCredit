@@ -1,53 +1,40 @@
-import { createConfig, configureChains } from 'wagmi';
-import { Chain } from 'wagmi/chains';
-import { publicProvider } from 'wagmi/providers/public';
-import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
-import { WalletConnectConnector } from 'wagmi/connectors/walletConnect';
-import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet';
+import { createAppKit } from '@reown/appkit';
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
 
-// Morph testnet chain from env
+// Morph Holesky chain from env
 const MORPH_CHAIN_ID = Number(import.meta.env.VITE_MORPH_CHAIN_ID || 2810);
-const MORPH_RPC_URL = import.meta.env.VITE_MORPH_RPC_URL || 'https://rpc-testnet.morphl2.io';
+const MORPH_RPC_URL = import.meta.env.VITE_MORPH_RPC_URL || 'https://rpc-holesky.morphl2.io';
 const MORPH_EXPLORER = import.meta.env.VITE_EXPLORER_URL || 'https://explorer-holesky.morphl2.io';
+const PROJECT_ID = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || '467852179c0864c56b3ea993ba72b05b';
 
-const morphTestnet: Chain = {
-  id: MORPH_CHAIN_ID,
-  name: 'Morph Testnet',
-  network: 'morph-testnet',
-  nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-  rpcUrls: {
-    default: { http: [MORPH_RPC_URL] },
-    public: { http: [MORPH_RPC_URL] },
+export const networks = [
+  { id: MORPH_CHAIN_ID, rpcUrl: MORPH_RPC_URL }
+];
+
+// Create Wagmi adapter and config (wagmi v2)
+export const wagmiAdapter = new WagmiAdapter({
+  projectId: PROJECT_ID,
+  networks,
+  ssr: false
+});
+
+export const config = wagmiAdapter.wagmiConfig;
+
+// Wallet modal setup (AppKit / WalletConnect Modal)
+export const appKit = createAppKit({
+  adapters: [wagmiAdapter],
+  projectId: PROJECT_ID,
+  networks,
+  metadata: {
+    name: 'MorphCredit',
+    description: 'Borrower Portal',
+    url: typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+    icons: ['https://raw.githubusercontent.com/okwareddevnest/MorphCredit/main/apps/morpho_credit-logo.png']
   },
-  blockExplorers: {
-    default: { name: 'Morph Explorer', url: MORPH_EXPLORER },
+  features: {
+    email: false
   },
-};
-
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [morphTestnet],
-  [publicProvider()]
-);
-
-export const config = createConfig({
-  autoConnect: true,
-  connectors: [
-    new MetaMaskConnector({ chains }),
-    new WalletConnectConnector({
-      chains,
-      options: {
-        projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID,
-      },
-    }),
-    new CoinbaseWalletConnector({
-      chains,
-      options: {
-        appName: 'MorphCredit',
-      },
-    }),
-  ],
-  publicClient,
-  webSocketPublicClient,
+  themeMode: 'dark'
 });
 
 export const getShortAddress = (address: string): string => {

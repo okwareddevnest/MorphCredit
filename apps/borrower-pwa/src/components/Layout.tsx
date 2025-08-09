@@ -10,6 +10,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { ConnectWallet } from './ConnectWallet';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -79,6 +80,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </Link>
                 );
               })}
+              <div className="ml-3"><ConnectWallet compact /></div>
             </nav>
             
             {/* Mobile Menu Button */}
@@ -140,7 +142,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 className="h-6 w-auto opacity-60"
               />
               <span className="text-sm text-dark-400">
-                © 2024 MorphCredit. All rights reserved.
+                © 2025 MorphCredit. All rights reserved.
               </span>
             </div>
             <div className="flex items-center space-x-6 text-sm text-dark-400">
