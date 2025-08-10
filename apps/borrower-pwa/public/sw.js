@@ -1,5 +1,5 @@
 // PWA service worker with network-first for HTML to avoid stale hashed assets after deploy
-const CACHE = 'morphcredit-cache-v3';
+const CACHE = 'morphcredit-cache-v4';
 const ASSETS = [
   '/index.html', // kept as offline fallback only
   '/morpho_credit-logo.png',
