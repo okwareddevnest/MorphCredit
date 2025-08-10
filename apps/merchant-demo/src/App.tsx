@@ -7,7 +7,9 @@ import {
   Settings,
   Home,
   Search,
-  Filter
+  Filter,
+  Menu,
+  X
 } from 'lucide-react';
 import { ProductCard } from './components/ProductCard';
 import { Cart } from './components/Cart';
@@ -39,6 +41,7 @@ const App: React.FC = () => {
   const [activePage, setActivePage] = useState('home');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const products: Product[] = [
     {
@@ -184,6 +187,14 @@ const App: React.FC = () => {
       <header className="relative z-10 bg-dark-900/80 backdrop-blur-md border-b border-dark-700/50 sticky top-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 rounded-lg bg-dark-800/50 hover:bg-dark-700/50 transition-colors"
+            >
+              {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="relative">
@@ -233,9 +244,23 @@ const App: React.FC = () => {
       </header>
 
       <div className="flex">
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Sidebar Navigation */}
-        <aside className="relative z-10 w-64 bg-dark-900/80 backdrop-blur-md border-r border-dark-700/50 min-h-screen sticky top-16">
-          <nav className="p-4">
+        <aside className={`
+          relative z-30 w-64 bg-dark-900/80 backdrop-blur-md border-r border-dark-700/50 
+          transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:sticky lg:top-16
+          fixed lg:relative top-0 left-0 h-full lg:h-auto lg:min-h-screen
+        `}>
+          <nav className="p-4 pt-20 lg:pt-4">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activePage === item.id;
@@ -243,7 +268,10 @@ const App: React.FC = () => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActivePage(item.id)}
+                  onClick={() => {
+                    setActivePage(item.id);
+                    setSidebarOpen(false);
+                  }}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors mb-2 ${
                     isActive
                       ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
@@ -260,18 +288,18 @@ const App: React.FC = () => {
 
         {/* Main Content */}
         <main className="flex-1 relative z-10">
-          <div className="p-6">
+          <div className="p-4 lg:p-6">
             {activePage === 'home' && (
               <div className="space-y-6">
                 {/* Welcome Section */}
-                <div className="bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl p-8 border border-primary-500/20">
-                  <h1 className="text-3xl font-bold text-white mb-4">
+                <div className="bg-gradient-to-r from-primary-500/10 to-secondary-500/10 rounded-xl p-4 md:p-8 border border-primary-500/20">
+                  <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">
                     Welcome to TechStore Pro
                   </h1>
-                  <p className="text-dark-300 text-lg mb-6">
+                  <p className="text-dark-300 text-base md:text-lg mb-6">
                     Discover the latest in technology with flexible payment options powered by MorphCredit.
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                     <div className="text-center p-4 bg-dark-800/50 rounded-lg">
                       <Package className="w-8 h-8 text-primary-400 mx-auto mb-2" />
                       <h3 className="font-semibold text-white">Premium Products</h3>
@@ -293,7 +321,7 @@ const App: React.FC = () => {
                 {/* Featured Products */}
                 <div>
                   <h2 className="text-2xl font-bold text-white mb-6">Featured Products</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {products.slice(0, 3).map((product, index) => (
                       <div key={product.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
                         <ProductCard product={product} onAddToCart={addToCart} />
@@ -329,7 +357,7 @@ const App: React.FC = () => {
                 </div>
 
                 {/* Products Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {filteredProducts.map((product, index) => (
                     <div key={product.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
                       <ProductCard product={product} onAddToCart={addToCart} />
