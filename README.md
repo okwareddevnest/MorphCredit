@@ -5,7 +5,7 @@ End-to-end, no-mocks deployment of MorphCredit on Morph Holesky Testnet (Chain I
 ### Architecture
 
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart LR
   subgraph Frontends
     B[Borrower PWA]
@@ -35,6 +35,15 @@ flowchart LR
   SC -- persists --> DB
   BF -- deploys --> BA
   BA -- transfers --> MS
+  
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
+  linkStyle 5 stroke:#dc2626,stroke-width:3px
+  linkStyle 6 stroke:#dc2626,stroke-width:3px
+  linkStyle 7 stroke:#dc2626,stroke-width:3px
 ```
 
 ### Monorepo layout
@@ -182,13 +191,19 @@ console.log({ txHash, agreementId });
 
 #### **Operational Flow:**
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart LR
   A[Add SDK Button] --> B[Customer Clicks]
   B --> C[BNPL Agreement Created]
   C --> D[Merchant Receives Payment]
   D --> E[Fulfill Order]
   E --> F[Customer Pays Installments]
+  
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
 ```
 
 ---
@@ -276,7 +291,7 @@ const agreementAddress = await bnplFactory.createAgreement(
 
 #### **Payment Flow:**
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart TD
   A[Shop] --> B[Choose BNPL]
   B --> C[Connect Wallet]
@@ -287,6 +302,16 @@ flowchart TD
   G --> H[Pay Installment 3]
   H --> I[Pay Installment 4]
   I --> J[Loan Complete]
+  
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
+  linkStyle 5 stroke:#dc2626,stroke-width:3px
+  linkStyle 6 stroke:#dc2626,stroke-width:3px
+  linkStyle 7 stroke:#dc2626,stroke-width:3px
+  linkStyle 8 stroke:#dc2626,stroke-width:3px
 ```
 
 #### **Using Borrower PWA:**
@@ -351,7 +376,7 @@ MIT License. See `LICENSE`.
 
 #### Current BNPL Flow (Working)
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff', 'messageLine0': '#dc2626', 'messageLine1': '#dc2626', 'messageText': '#000000', 'activationBorderColor': '#dc2626', 'activationBkgColor': '#ffffff'}}}%%
 sequenceDiagram
   autonumber
   participant U as User (Borrower)
@@ -374,7 +399,7 @@ sequenceDiagram
 
 #### System Architecture (Current)
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart TB
   subgraph "Frontend Layer"
     MW[Merchant Website]
@@ -410,6 +435,16 @@ flowchart TB
   SC --> SO
   SC --> DB
   
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
+  linkStyle 5 stroke:#dc2626,stroke-width:3px
+  linkStyle 6 stroke:#dc2626,stroke-width:3px
+  linkStyle 7 stroke:#dc2626,stroke-width:3px
+  linkStyle 8 stroke:#dc2626,stroke-width:3px
+  
   style BF fill:#4ade80,color:#000000
   style MS fill:#4ade80,color:#000000
   style BA fill:#4ade80,color:#000000
@@ -419,7 +454,7 @@ flowchart TB
 
 #### Legacy Sequence Diagram
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff', 'messageLine0': '#dc2626', 'messageLine1': '#dc2626', 'messageText': '#000000', 'activationBorderColor': '#dc2626', 'activationBkgColor': '#ffffff'}}}%%
 sequenceDiagram
   autonumber
   participant U as User (Merchant)
