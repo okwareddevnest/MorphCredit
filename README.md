@@ -5,7 +5,7 @@ End-to-end, no-mocks deployment of MorphCredit on Morph Holesky Testnet (Chain I
 ### Architecture
 
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart LR
   subgraph Frontends
     B[Borrower PWA]
@@ -45,9 +45,9 @@ flowchart LR
 - contracts: Hardhat (deploys ScoreOracle, CreditRegistry(Simple), LendingPool, BNPL/LoC)
 - scoring: Express scoring service (MongoDB, WebAuthn, on-chain publish)
 
-### 🎯 SYSTEM STATUS (FULLY OPERATIONAL)
+### SYSTEM STATUS (FULLY OPERATIONAL)
 
-✅ **BNPL System Ready for Production**
+**BNPL System Ready for Production**
 - All contracts deployed and configured on Morph Testnet
 - Merchant addresses configured with proper roles
 - BNPL agreements successfully tested with various loan amounts
@@ -61,7 +61,7 @@ flowchart LR
 - Chain ID: 2810
 - Addresses: apps/config/addresses.json
 
-### 📋 Contract Configuration
+### Contract Configuration
 ```json
 {
   "scoreOracle": "0x[DEPLOYED_ADDRESS]",
@@ -150,9 +150,9 @@ const { txHash, agreementId } = await sdk.createAgreement(offers[0].id);
 console.log({ txHash, agreementId });
 ```
 
-## 👥 USER WORKFLOWS
+## USER WORKFLOWS
 
-### 🛒 **Merchant Workflow**
+### **Merchant Workflow**
 
 #### **Integration Steps:**
 1. **Install SDK**
@@ -182,7 +182,7 @@ console.log({ txHash, agreementId });
 
 #### **Operational Flow:**
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart LR
   A[Add SDK Button] --> B[Customer Clicks]
   B --> C[BNPL Agreement Created]
@@ -193,7 +193,7 @@ flowchart LR
 
 ---
 
-### 👩‍💻 **Developer Workflow**
+### **Developer Workflow**
 
 #### **Local Development:**
 1. **Clone & Setup**
@@ -252,7 +252,7 @@ const agreementAddress = await bnplFactory.createAgreement(
 
 ---
 
-### 🏦 **Borrower Workflow**
+### **Borrower Workflow**
 
 #### **Getting Started:**
 1. **Visit Merchant Website**
@@ -276,17 +276,17 @@ const agreementAddress = await bnplFactory.createAgreement(
 
 #### **Payment Flow:**
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart TD
-  A[🛒 Shop] --> B[💳 Choose BNPL]
-  B --> C[🔗 Connect Wallet]
-  C --> D[✅ Agreement Created]
-  D --> E[📦 Receive Product]
-  E --> F[💰 Pay Installment 1]
-  F --> G[💰 Pay Installment 2]
-  G --> H[💰 Pay Installment 3]
-  H --> I[💰 Pay Installment 4]
-  I --> J[🎉 Loan Complete]
+  A[Shop] --> B[Choose BNPL]
+  B --> C[Connect Wallet]
+  C --> D[Agreement Created]
+  D --> E[Receive Product]
+  E --> F[Pay Installment 1]
+  F --> G[Pay Installment 2]
+  G --> H[Pay Installment 3]
+  H --> I[Pay Installment 4]
+  I --> J[Loan Complete]
 ```
 
 #### **Using Borrower PWA:**
@@ -309,7 +309,7 @@ flowchart TD
 
 ---
 
-### 🚀 **Quick Start Guide**
+### **Quick Start Guide**
 
 #### **For Merchants (5 minutes):**
 ```bash
@@ -321,7 +321,7 @@ import { MorphCreditButton } from 'morphcredit-merchant-sdk';
 <MorphCreditButton amount={499.99} onSuccess={handleSuccess} />
 
 # 3. Test with Morph testnet
-# Done! 🎉
+# Done!
 ```
 
 #### **For Borrowers (2 minutes):**
@@ -338,7 +338,7 @@ pnpm install && pnpm -w build
 cd scoring && pnpm dev  # Terminal 1
 cd apps/borrower-pwa && pnpm dev  # Terminal 2
 cd apps/merchant-demo && pnpm dev  # Terminal 3
-# Full system running! 🚀
+# Full system running!
 ```
 
 ---
@@ -347,11 +347,11 @@ cd apps/merchant-demo && pnpm dev  # Terminal 3
 
 MIT License. See `LICENSE`.
 
-### 🎯 OPERATIONAL FLOW DIAGRAMS
+### OPERATIONAL FLOW DIAGRAMS
 
 #### Current BNPL Flow (Working)
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 sequenceDiagram
   autonumber
   participant U as User (Borrower)
@@ -365,37 +365,37 @@ sequenceDiagram
   M->>SDK: createAgreement(AMOUNT USDC)
   SDK->>BF: createAgreement(borrower, merchant, amount, 4, 10%)
   BF->>BA: Deploy BNPL Agreement
-  BA-->>SDK: Agreement Created ✅
+  BA-->>SDK: Agreement Created
   SDK->>MS: Transfer AMOUNT USDC to Merchant
-  MS-->>M: Payment Complete ✅
+  MS-->>M: Payment Complete
   BA->>BA: Schedule 4 installment payments
   SDK-->>U: Success! Payment plan active
 ```
 
 #### System Architecture (Current)
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 flowchart TB
-  subgraph "🌐 Frontend Layer"
+  subgraph "Frontend Layer"
     MW[Merchant Website]
     BP[Borrower PWA]
     MD[Merchant Demo]
   end
   
-  subgraph "📦 SDK Layer"
+  subgraph "SDK Layer"
     SDK[MorphCredit SDK]
   end
   
-  subgraph "⛓️ Morph Testnet (2810)"
-    BF[BNPLFactory<br/>✅ FACTORY_ROLE]
-    MS[MockStable<br/>✅ 3.2M USDC]
-    BA[BNPL Agreements<br/>✅ Multiple Amounts Tested]
+  subgraph "Morph Testnet (2810)"
+    BF[BNPLFactory<br/>FACTORY_ROLE]
+    MS[MockStable<br/>3.2M USDC]
+    BA[BNPL Agreements<br/>Multiple Amounts Tested]
     SO[ScoreOracle]
     CR[CreditRegistry]
-    LP[LendingPool<br/>⚠️ Pool Deposit Issue]
+    LP[LendingPool<br/>Pool Deposit Issue]
   end
   
-  subgraph "🏗️ Backend Services"
+  subgraph "Backend Services"
     SC[Scoring Service]
     DB[(MongoDB)]
   end
@@ -410,16 +410,16 @@ flowchart TB
   SC --> SO
   SC --> DB
   
-  style BF fill:#4ade80
-  style MS fill:#4ade80
-  style BA fill:#4ade80
-  style SDK fill:#4ade80
-  style LP fill:#fbbf24
+  style BF fill:#4ade80,color:#000000
+  style MS fill:#4ade80,color:#000000
+  style BA fill:#4ade80,color:#000000
+  style SDK fill:#4ade80,color:#000000
+  style LP fill:#fbbf24,color:#000000
 ```
 
 #### Legacy Sequence Diagram
 ```mermaid
-%%{init: { 'theme': 'dark' }}%%
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#000000', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
 sequenceDiagram
   autonumber
   participant U as User (Merchant)
