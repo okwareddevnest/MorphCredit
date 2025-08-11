@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 async function main() {
   const bnplFactory = await ethers.getContractAt("BNPLFactory", "0x50e43053510E8f25280d335F5c7F30b15CF13965");
   const FACTORY_ROLE = ethers.id("FACTORY_ROLE");
-  const merchantAddress = "0xcB5478384f9E1179d2dA16B5aF092b886b96188D";
+  const merchantAddress = "0x99a9542034F9db0e250E6EBf88206d65f60e19ea";
   
   const hasRole = await bnplFactory.hasRole(FACTORY_ROLE, merchantAddress);
   console.log("Merchant has FACTORY_ROLE:", hasRole);
