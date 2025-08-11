@@ -75,7 +75,7 @@ export const Home: React.FC = () => {
           setApr(st.aprBps / 10000);
         }
 
-        // Agreements aggregates
+        // Agreements aggregates - show both borrower and merchant agreements
         try {
           const addrs = await listAgreements(address);
           let totalAgreements = addrs.length;

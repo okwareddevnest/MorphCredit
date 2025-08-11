@@ -54,17 +54,21 @@ export const Repay: React.FC = () => {
           const nextDue = nextInst ? Number(nextInst.dueDate) : 0;
           const nextAmt = nextInst ? Number(nextInst.amount) : 0;
           const status: BNPLAgreement['status'] = paid >= numInst ? 'completed' : (nextDue && nextDue < Math.floor(Date.now() / 1000) ? 'overdue' : 'active');
-          items.push({
-            id: addr,
-            merchant: agreement.merchant,
-            amount: totalAmount,
-            installments: numInst,
-            paidInstallments: paid,
-            nextDueDate: nextDue,
-            nextAmount: nextAmt,
-            status,
-            autoRepay: false,
-          });
+          
+          // Only show agreements where current user is the borrower (can't repay as merchant)
+          if (agreement.borrower.toLowerCase() === address.toLowerCase()) {
+            items.push({
+              id: addr,
+              merchant: agreement.merchant,
+              amount: totalAmount,
+              installments: numInst,
+              paidInstallments: paid,
+              nextDueDate: nextDue,
+              nextAmount: nextAmt,
+              status,
+              autoRepay: false,
+            });
+          }
         }
         setAgreements(items);
       } catch (e) {

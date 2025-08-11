@@ -59,21 +59,23 @@ export const Agreements: React.FC = () => {
           try {
             const { agreement, installments } = await readAgreement(a);
             const due = installments.find((i: any) => !i.isPaid);
-            rows.push({
-              id: a,
-              merchant: agreement.merchant,
-              merchantName: agreement.merchant,
-              amount: Number(agreement.principal) / 1_000_000,
-              installments: Number(agreement.installments),
-              paidInstallments: Number(agreement.paidInstallments),
-              nextDueDate: due ? Number(due.dueDate) : 0,
-              nextAmount: due ? Number(due.amount) / 1_000_000 : 0,
-              status: Number(agreement.status) === 2 ? 'completed' : 'active',
-              autoRepay: false,
-              apr: Number(agreement.apr) / 10000,
-              totalCost: Number(agreement.installmentAmount) / 1_000_000 * Number(agreement.installments),
-              createdAt: Number(agreement.lastPaymentDate) || 0
-            });
+                          const isMerchant = agreement.merchant.toLowerCase() === address.toLowerCase();
+              
+              rows.push({
+                id: a,
+                merchant: agreement.merchant,
+                merchantName: isMerchant ? `[You as Merchant] ${agreement.merchant}` : agreement.merchant,
+                amount: Number(agreement.principal) / 1_000_000,
+                installments: Number(agreement.installments),
+                paidInstallments: Number(agreement.paidInstallments),
+                nextDueDate: due ? Number(due.dueDate) : 0,
+                nextAmount: due ? Number(due.amount) / 1_000_000 : 0,
+                status: Number(agreement.status) === 2 ? 'completed' : 'active',
+                autoRepay: false,
+                apr: Number(agreement.apr) / 10000,
+                totalCost: Number(agreement.installmentAmount) / 1_000_000 * Number(agreement.installments),
+                createdAt: Number(agreement.lastPaymentDate) || 0
+              });
           } catch {}
         }
         setAgreements(rows);
@@ -153,7 +155,7 @@ export const Agreements: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">BNPL Agreements</h1>
           <p className="text-dark-400">
-            Manage your Buy Now, Pay Later agreements and payment schedules.
+            Manage all your BNPL agreements - both as borrower and merchant.
           </p>
         </div>
         

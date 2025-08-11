@@ -21,6 +21,7 @@ contract BNPLFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable
     address public lendingPool;
 
     mapping(address => address[]) public userAgreements;
+    mapping(address => address[]) public merchantAgreements; 
     mapping(address => bool) public agreements;
 
     event AgreementCreated(address indexed borrower, address indexed merchant, address agreement, uint256 principal);
@@ -81,6 +82,7 @@ contract BNPLFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable
         );
 
         userAgreements[borrower].push(agreement);
+        merchantAgreements[merchant].push(agreement);
         agreements[agreement] = true;
 
         emit AgreementCreated(borrower, merchant, agreement, principal);
@@ -89,12 +91,32 @@ contract BNPLFactory is Initializable, AccessControlUpgradeable, UUPSUpgradeable
     }
 
     /**
-     * @notice Get all agreements for a user
+     * @notice Get all agreements for a user (as borrower)
      * @param user The user's address
      * @return Array of agreement addresses
      */
     function getAgreementsByUser(address user) external view returns (address[] memory) {
         return userAgreements[user];
+    }
+
+    /**
+     * @notice Get all agreements for a merchant
+     * @param merchant The merchant's address
+     * @return Array of agreement addresses
+     */
+    function getAgreementsByMerchant(address merchant) external view returns (address[] memory) {
+        return merchantAgreements[merchant];
+    }
+
+    /**
+     * @notice Get all agreements where user is either borrower or merchant
+     * @param user The user's address
+     * @return borrowerAgreements Array of agreements where user is borrower
+     * @return userMerchantAgreements Array of agreements where user is merchant  
+     */
+    function getAllUserAgreements(address user) external view returns (address[] memory borrowerAgreements, address[] memory userMerchantAgreements) {
+        borrowerAgreements = userAgreements[user];
+        userMerchantAgreements = merchantAgreements[user];
     }
 
     /**

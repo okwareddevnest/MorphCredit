@@ -12,7 +12,8 @@ export const CREDIT_REGISTRY_SIMPLE_ABI = [
 ];
 
 export const BNPL_FACTORY_ABI = [
-  'function getAgreementsByUser(address user) view returns (address[])'
+  'function getAgreementsByUser(address user) view returns (address[])',
+  'function getAllUserAgreements(address user) view returns (address[] borrowerAgreements, address[] merchantAgreements)'
 ];
 
 export const BNPL_AGREEMENT_ABI = [
@@ -77,8 +78,19 @@ export async function listAgreements(user: string): Promise<string[]> {
   if (!contractAddresses.bnplFactory) return [];
   const provider = getBrowserProvider();
   const fac = new ethers.Contract(contractAddresses.bnplFactory, BNPL_FACTORY_ABI, provider);
-  const arr: string[] = await fac.getAgreementsByUser(user);
-  return arr;
+  
+  try {
+    // Try the new function that gets agreements where user is borrower OR merchant
+    const [borrowerAgreements, merchantAgreements] = await fac.getAllUserAgreements(user);
+    // Combine both arrays and remove duplicates
+    const allAgreements = [...borrowerAgreements, ...merchantAgreements];
+    return [...new Set(allAgreements)]; // Remove duplicates
+  } catch (error) {
+    // Fallback to old function if new one doesn't exist (backward compatibility)
+    console.warn('getAllUserAgreements not available, falling back to getAgreementsByUser:', error);
+    const arr: string[] = await fac.getAgreementsByUser(user);
+    return arr;
+  }
 }
 
 export async function readAgreement(addr: string) {
