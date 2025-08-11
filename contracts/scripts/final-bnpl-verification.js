@@ -6,10 +6,10 @@ async function main() {
   console.log("==================================");
   
   const [deployer] = await ethers.getSigners();
-  const newMerchantAddr = "0x99a9542034F9db0e250E6EBf88206d65f60e19ea";
+  const merchantAddr = addresses.oracleSigner;
   
   console.log("Deployer address:", deployer.address);
-  console.log("New merchant address:", newMerchantAddr);
+  console.log("Merchant address:", merchantAddr);
   console.log("");
   
   let allGood = true;
@@ -49,14 +49,14 @@ async function main() {
     console.log("----------------------");
     
     const FACTORY_ROLE = ethers.id("FACTORY_ROLE");
-    const merchantHasFactoryRole = await bnplFactory.hasRole(FACTORY_ROLE, newMerchantAddr);
+    const merchantHasFactoryRole = await bnplFactory.hasRole(FACTORY_ROLE, merchantAddr);
     const deployerHasFactoryRole = await bnplFactory.hasRole(FACTORY_ROLE, deployer.address);
     
-    console.log("New merchant has FACTORY_ROLE:", merchantHasFactoryRole ? "✅ YES" : "❌ NO");
+    console.log("Merchant has FACTORY_ROLE:", merchantHasFactoryRole ? "✅ YES" : "❌ NO");
     console.log("Deployer has FACTORY_ROLE:", deployerHasFactoryRole ? "✅ YES" : "❌ NO");
     
     if (!merchantHasFactoryRole) {
-      console.log("⚠️  Warning: New merchant needs FACTORY_ROLE for SDK");
+      console.log("⚠️  Warning: Merchant needs FACTORY_ROLE for SDK");
       allGood = false;
     }
     
@@ -138,7 +138,7 @@ async function main() {
     console.log("==============================");
     
     console.log("Contract addresses updated:", "✅ YES");
-    console.log("New merchant has FACTORY_ROLE:", merchantHasFactoryRole ? "✅ YES" : "❌ NO");
+    console.log("Merchant has FACTORY_ROLE:", merchantHasFactoryRole ? "✅ YES" : "❌ NO");
     console.log("Minting functionality:", "✅ WORKING");
     console.log("Factory configuration:", "✅ WORKING");
     console.log("BNPL implementation set:", implementation !== ethers.ZeroAddress ? "✅ YES" : "❌ NO");
@@ -146,7 +146,7 @@ async function main() {
     console.log("\n" + "=".repeat(50));
     if (allGood && merchantHasFactoryRole) {
       console.log("🎉 SYSTEM READY FOR BNPL SDK!");
-      console.log("✅ The new address can create BNPL agreements");
+      console.log("✅ The merchant address can create BNPL agreements");
       console.log("✅ SDK button should work properly");
     } else {
       console.log("⚠️  SYSTEM PARTIALLY READY");

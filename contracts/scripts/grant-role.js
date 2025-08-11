@@ -1,31 +1,32 @@
 const { ethers } = require("hardhat");
+const addresses = require("../../apps/config/addresses.json");
 
 async function main() {
-  console.log("Granting FACTORY_ROLE to new merchant address...");
+  console.log("Granting FACTORY_ROLE to merchant address...");
   
   const [deployer] = await ethers.getSigners();
   console.log("Deployer address:", deployer.address);
   
-  const bnplFactory = await ethers.getContractAt("BNPLFactory", "0x50e43053510E8f25280d335F5c7F30b15CF13965");
+  const bnplFactory = await ethers.getContractAt("BNPLFactory", addresses.bnplFactory);
   const FACTORY_ROLE = ethers.id("FACTORY_ROLE");
-  const newMerchantAddress = "0x99a9542034F9db0e250E6EBf88206d65f60e19ea";
+  const merchantAddress = addresses.oracleSigner; // Use oracle signer as merchant
   
   try {
     // Check current role status
-    const hasRoleBefore = await bnplFactory.hasRole(FACTORY_ROLE, newMerchantAddress);
+    const hasRoleBefore = await bnplFactory.hasRole(FACTORY_ROLE, merchantAddress);
     console.log("Merchant has FACTORY_ROLE before:", hasRoleBefore);
     
     if (!hasRoleBefore) {
       // Grant the role
-      console.log("Granting FACTORY_ROLE to:", newMerchantAddress);
-      const tx = await bnplFactory.grantRole(FACTORY_ROLE, newMerchantAddress);
+      console.log("Granting FACTORY_ROLE to:", merchantAddress);
+      const tx = await bnplFactory.grantRole(FACTORY_ROLE, merchantAddress);
       console.log("Transaction sent:", tx.hash);
       
       const receipt = await tx.wait();
       console.log("Transaction confirmed in block:", receipt.blockNumber);
       
       // Verify the role was granted
-      const hasRoleAfter = await bnplFactory.hasRole(FACTORY_ROLE, newMerchantAddress);
+      const hasRoleAfter = await bnplFactory.hasRole(FACTORY_ROLE, merchantAddress);
       console.log("Merchant has FACTORY_ROLE after:", hasRoleAfter);
       
       if (hasRoleAfter) {

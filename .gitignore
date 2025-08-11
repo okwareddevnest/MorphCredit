@@ -245,3 +245,7 @@ apps/merchant-demo/test-results/
 apps/merchant-demo/test-coverage/
 apps/merchant-demo/test-results.json
 apps/merchant-demo/test-coverage.json
+
+apps/config/addresses.json
+
+.env.*
