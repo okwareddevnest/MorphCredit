@@ -376,25 +376,38 @@ MIT License. See `LICENSE`.
 
 #### Current BNPL Flow (Working)
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff', 'messageLine0': '#dc2626', 'messageLine1': '#dc2626', 'messageText': '#000000', 'activationBorderColor': '#dc2626', 'activationBkgColor': '#ffffff'}}}%%
-sequenceDiagram
-  autonumber
-  participant U as User (Borrower)
-  participant M as Merchant Website
-  participant SDK as MorphCredit SDK
-  participant BF as BNPLFactory
-  participant MS as MockStable (USDC)
-  participant BA as BNPLAgreement
-
-  U->>M: Click "Pay with MorphCredit"
-  M->>SDK: createAgreement(AMOUNT USDC)
-  SDK->>BF: createAgreement(borrower, merchant, amount, 4, 10%)
-  BF->>BA: Deploy BNPL Agreement
-  BA-->>SDK: Agreement Created
-  SDK->>MS: Transfer AMOUNT USDC to Merchant
-  MS-->>M: Payment Complete
-  BA->>BA: Schedule 4 installment payments
-  SDK-->>U: Success! Payment plan active
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+flowchart TD
+  A[User visits Merchant Website] --> B[User clicks 'Pay with MorphCredit']
+  B --> C[MorphCredit SDK activated]
+  C --> D[SDK calls createAgreement with loan details]
+  D --> E[BNPLFactory deploys new BNPL Agreement]
+  E --> F[BNPL Agreement contract created]
+  F --> G[SDK transfers USDC to Merchant]
+  G --> H[Merchant receives payment immediately]
+  H --> I[BNPL Agreement schedules 4 installments]
+  I --> J[User gets confirmation & payment plan]
+  
+  style A fill:#e3f2fd,color:#000000
+  style B fill:#fff3e0,color:#000000
+  style C fill:#f3e5f5,color:#000000
+  style D fill:#f3e5f5,color:#000000
+  style E fill:#e8f5e8,color:#000000
+  style F fill:#e8f5e8,color:#000000
+  style G fill:#e8f5e8,color:#000000
+  style H fill:#fff3e0,color:#000000
+  style I fill:#e8f5e8,color:#000000
+  style J fill:#e3f2fd,color:#000000
+  
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
+  linkStyle 5 stroke:#dc2626,stroke-width:3px
+  linkStyle 6 stroke:#dc2626,stroke-width:3px
+  linkStyle 7 stroke:#dc2626,stroke-width:3px
+  linkStyle 8 stroke:#dc2626,stroke-width:3px
 ```
 
 #### System Architecture (Current)
@@ -452,30 +465,51 @@ flowchart TB
   style LP fill:#fbbf24,color:#000000
 ```
 
-#### Legacy Sequence Diagram
+#### Merchant Integration Flow
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff', 'messageLine0': '#dc2626', 'messageLine1': '#dc2626', 'messageText': '#000000', 'activationBorderColor': '#dc2626', 'activationBkgColor': '#ffffff'}}}%%
-sequenceDiagram
-  autonumber
-  participant U as User (Merchant)
-  participant D as Merchant Demo
-  participant SDK as Merchant SDK
-  participant SC as Scoring Service
-  participant BF as BNPLFactory
-  participant BA as BNPLAgreement
-
-  U->>D: Click "Pay with MorphCredit"
-  D->>SDK: connectWallet()
-  SDK->>SC: POST /score { address }
-  SC-->>SDK: { tier, score }
-  SDK->>SDK: build offers (APR bands)
-  U->>D: Select offer
-  D->>SDK: createAgreement(offerId)
-  SDK->>BF: createAgreement(...)
-  BF->>BA: deploy clone
-  BF-->>SDK: AgreementCreated(..., agreement)
-  SDK-->>D: { txHash, agreementId }
-  D-->>U: Confirmation + Explorer link
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+flowchart TD
+  A[Customer clicks 'Pay with MorphCredit'] --> B[Merchant SDK connects wallet]
+  B --> C[SDK requests credit score from API]
+  C --> D{Score received?}
+  D -->|Yes| E[SDK builds personalized offers]
+  D -->|No| F[Use default offer]
+  E --> G[Customer selects preferred offer]
+  F --> G
+  G --> H[SDK creates BNPL agreement on-chain]
+  H --> I[BNPLFactory deploys agreement contract]
+  I --> J[Agreement address returned]
+  J --> K[Transaction hash generated]
+  K --> L[Merchant gets confirmation]
+  L --> M[Customer receives explorer link]
+  
+  style A fill:#fff3e0,color:#000000
+  style B fill:#f3e5f5,color:#000000
+  style C fill:#f1f8e9,color:#000000
+  style D fill:#ffecb3,color:#000000
+  style E fill:#f1f8e9,color:#000000
+  style F fill:#ffcdd2,color:#000000
+  style G fill:#fff3e0,color:#000000
+  style H fill:#f3e5f5,color:#000000
+  style I fill:#e8f5e8,color:#000000
+  style J fill:#e8f5e8,color:#000000
+  style K fill:#e8f5e8,color:#000000
+  style L fill:#fff3e0,color:#000000
+  style M fill:#e3f2fd,color:#000000
+  
+  linkStyle 0 stroke:#dc2626,stroke-width:3px
+  linkStyle 1 stroke:#dc2626,stroke-width:3px
+  linkStyle 2 stroke:#dc2626,stroke-width:3px
+  linkStyle 3 stroke:#dc2626,stroke-width:3px
+  linkStyle 4 stroke:#dc2626,stroke-width:3px
+  linkStyle 5 stroke:#dc2626,stroke-width:3px
+  linkStyle 6 stroke:#dc2626,stroke-width:3px
+  linkStyle 7 stroke:#dc2626,stroke-width:3px
+  linkStyle 8 stroke:#dc2626,stroke-width:3px
+  linkStyle 9 stroke:#dc2626,stroke-width:3px
+  linkStyle 10 stroke:#dc2626,stroke-width:3px
+  linkStyle 11 stroke:#dc2626,stroke-width:3px
+  linkStyle 12 stroke:#dc2626,stroke-width:3px
 ```
 
 ### End‑to‑end demo flow (fresh wallet)
