@@ -412,57 +412,78 @@ flowchart TD
 
 #### System Architecture (Current)
 ```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#ffffff', 'primaryTextColor': '#000000', 'primaryBorderColor': '#000000', 'lineColor': '#dc2626', 'edgeLabelBackground': '#ffffff', 'clusterBkg': '#ffffff', 'secondaryColor': '#ffffff', 'tertiaryColor': '#ffffff', 'background': '#ffffff', 'mainBkg': '#ffffff', 'secondBkg': '#ffffff', 'tertiaryBkg': '#ffffff'}}}%%
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: '#ffffff'
+    primaryTextColor: '#000000'
+    primaryBorderColor: '#000000'
+    lineColor: '#dc2626'
+    edgeLabelBackground: '#ffffff'
+    clusterBkg: '#ffffff'
+    secondaryColor: '#ffffff'
+    tertiaryColor: '#ffffff'
+    background: '#ffffff'
+    mainBkg: '#ffffff'
+    secondBkg: '#ffffff'
+  layout: fixed
+---
 flowchart TB
-  subgraph "Frontend Layer"
-    MW[Merchant Website]
-    BP[Borrower PWA]
-    MD[Merchant Demo]
+ subgraph subGraph0["Frontend Layer"]
+        MW["Merchant Website"]
+        BP["Borrower PWA"]
+        MD["Merchant Demo"]
   end
-  
-  subgraph "SDK Layer"
-    SDK[MorphCredit SDK]
+ subgraph subGraph1["SDK Layer"]
+        SDK["MorphCredit SDK"]
   end
-  
-  subgraph "Morph Testnet (2810)"
-    BF[BNPLFactory<br/>FACTORY_ROLE]
-    MS[MockStable<br/>3.2M USDC]
-    BA[BNPL Agreements<br/>Multiple Amounts Tested]
-    SO[ScoreOracle]
-    CR[CreditRegistry]
-    LP[LendingPool<br/>Pool Deposit Issue]
+ subgraph subGraph2["Morph Testnet (2810)"]
+        BF["BNPLFactory<br>FACTORY_ROLE"]
+        MS["MockStable<br>3.2M USDC"]
+        BA["BNPL Agreements<br>Multiple Amounts Tested"]
+        SO["ScoreOracle"]
+        CR["CreditRegistry"]
+        LP["LendingPool<br>Pool Deposit Issue"]
   end
-  
-  subgraph "Backend Services"
-    SC[Scoring Service]
-    DB[(MongoDB)]
+ subgraph subGraph3["Backend Services"]
+        SC["Scoring Service"]
+        DB[("MongoDB")]
   end
+    MW --> SDK
+    MD --> SDK
+    SDK --> BF & MS
+    BF --> BA
+    BP --> CR & SC
+    SC --> SO & DB
+     MW:::Pine
+     BP:::Pine
+     MD:::Pine
+     SDK:::Pine
+     BF:::Pine
+     MS:::Pine
+     BA:::Pine
+     SO:::Pine
+     CR:::Pine
+     LP:::Pine
+     SC:::Pine
+     DB:::Pine
+    classDef Pine stroke-width:1px, stroke-dasharray:none, stroke:#254336, fill:#27654A, color:#FFFFFF
+    style SDK fill:#4ade80,color:#000000
+    style BF fill:#4ade80,color:#000000
+    style MS fill:#4ade80,color:#000000
+    style BA fill:#4ade80,color:#000000
+    style LP fill:#fbbf24,color:#000000
+    linkStyle 0 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 1 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 2 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 3 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 4 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 5 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 6 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 7 stroke:#dc2626,stroke-width:3px,fill:none
+    linkStyle 8 stroke:#dc2626,stroke-width:3px,fill:none
 
-  MW --> SDK
-  MD --> SDK
-  SDK --> BF
-  SDK --> MS
-  BF --> BA
-  BP --> CR
-  BP --> SC
-  SC --> SO
-  SC --> DB
-  
-  linkStyle 0 stroke:#dc2626,stroke-width:3px
-  linkStyle 1 stroke:#dc2626,stroke-width:3px
-  linkStyle 2 stroke:#dc2626,stroke-width:3px
-  linkStyle 3 stroke:#dc2626,stroke-width:3px
-  linkStyle 4 stroke:#dc2626,stroke-width:3px
-  linkStyle 5 stroke:#dc2626,stroke-width:3px
-  linkStyle 6 stroke:#dc2626,stroke-width:3px
-  linkStyle 7 stroke:#dc2626,stroke-width:3px
-  linkStyle 8 stroke:#dc2626,stroke-width:3px
-  
-  style BF fill:#4ade80,color:#000000
-  style MS fill:#4ade80,color:#000000
-  style BA fill:#4ade80,color:#000000
-  style SDK fill:#4ade80,color:#000000
-  style LP fill:#fbbf24,color:#000000
 ```
 
 #### Merchant Integration Flow
