@@ -149,13 +149,56 @@ export const Cart: React.FC<CartProps> = ({
       });
       sdk.updateOptions?.({ skipRoleCheck: true, enableLogging: true } as any);
 
-      // No preflight simulation/estimation: submit the real transaction with configured gas limit
+      // Demo Mode: short-circuit to simulated agreement
+      if ((window as any).VITE_MORPHCREDIT_DEMO_MODE || (import.meta as any).env?.VITE_MORPHCREDIT_DEMO_MODE) {
+        // fake tx/agreement ids
+        const randHex = (n: number) => '0x' + Array.from(crypto.getRandomValues(new Uint8Array(n))).map(b => b.toString(16).padStart(2,'0')).join('');
+        const txHash = randHex(32);
+        const agreementId = randHex(20);
+        // persist a realistic agreement snapshot for borrower UI
+        const now = Math.floor(Date.now()/1000);
+        const installments = 4;
+        const per = Math.floor((totalPrice * 1e6) / installments);
+        const demo = {
+          id: agreementId,
+          agreement: {
+            principal: BigInt(totalPrice * 1e6),
+            borrower: address,
+            merchant: address,
+            installments,
+            installmentAmount: BigInt(per),
+            apr: 1000,
+            penaltyRate: 1000,
+            dueDates: Array.from({ length: installments }, (_, i) => now + (i+1) * 14 * 24 * 3600),
+            status: 1,
+            paidInstallments: 0,
+            lastPaymentDate: now,
+            gracePeriod: 5 * 24 * 3600,
+            writeOffPeriod: 60 * 24 * 3600,
+          },
+          installments: Array.from({ length: installments }, (_, i) => ({
+            id: i,
+            amount: BigInt(per),
+            dueDate: now + (i+1) * 14 * 24 * 3600,
+            isPaid: false,
+            paidAt: 0,
+            penaltyAccrued: 0,
+          }))
+        };
+        const key = `mc_demo_agreements_${address.toLowerCase()}`;
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        list.push(demo);
+        localStorage.setItem(key, JSON.stringify(list));
+        await new Promise((r) => setTimeout(r, 1400));
+        handleSuccess({ txHash, agreementId, success: true, blockNumber: 0, gasUsed: 0n as any, gasPrice: 0n as any } as unknown as TxResult);
+        return;
+      }
 
+      // Live path: no preflight simulation/estimation
       let result: TxResult;
       try {
         result = await sdk.createAgreement(offers[0].id);
       } catch (err: any) {
-        // Common with Brave/extension wallets when the approval window is not focused
         if (err?.code === -32002) {
           alert('Please open your wallet (extension) to approve the transaction, then try again.');
         }

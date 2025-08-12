@@ -84,16 +84,54 @@ export async function listAgreements(user: string): Promise<string[]> {
     const [borrowerAgreements, merchantAgreements] = await fac.getAllUserAgreements(user);
     // Combine both arrays and remove duplicates
     const allAgreements = [...borrowerAgreements, ...merchantAgreements];
-    return [...new Set(allAgreements)]; // Remove duplicates
+    const uniq = [...new Set(allAgreements)] as string[];
+    // Demo Mode: merge with locally simulated agreements (if any)
+    if ((window as any).VITE_MORPHCREDIT_DEMO_MODE || import.meta.env.VITE_MORPHCREDIT_DEMO_MODE) {
+      const key = `mc_demo_agreements_${user.toLowerCase()}`;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const demo: { id: string }[] = JSON.parse(raw);
+          return [...new Set([...uniq, ...demo.map(d => d.id)])];
+        }
+      } catch {}
+    }
+    return uniq; // Remove duplicates
   } catch (error) {
     // Fallback to old function if new one doesn't exist (backward compatibility)
     console.warn('getAllUserAgreements not available, falling back to getAgreementsByUser:', error);
     const arr: string[] = await fac.getAgreementsByUser(user);
+    if ((window as any).VITE_MORPHCREDIT_DEMO_MODE || import.meta.env.VITE_MORPHCREDIT_DEMO_MODE) {
+      const key = `mc_demo_agreements_${user.toLowerCase()}`;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const demo: { id: string }[] = JSON.parse(raw);
+          return [...new Set([...arr, ...demo.map(d => d.id)])];
+        }
+      } catch {}
+    }
     return arr;
   }
 }
 
 export async function readAgreement(addr: string) {
+  // Demo Mode: serve from localStorage if this looks like a demo id
+  if ((window as any).VITE_MORPHCREDIT_DEMO_MODE || import.meta.env.VITE_MORPHCREDIT_DEMO_MODE) {
+    try {
+      const sig = await getSigner();
+      const who = sig && (sig as any).getAddress ? await (sig as any).getAddress() : '';
+      const key = `mc_demo_agreements_${(who || '').toLowerCase()}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const demo: any[] = JSON.parse(raw);
+        const found = demo.find(d => d.id.toLowerCase() === addr.toLowerCase());
+        if (found) {
+          return { agreement: found.agreement, installments: found.installments };
+        }
+      }
+    } catch {}
+  }
   const provider = getBrowserProvider();
   const ag = new ethers.Contract(addr, BNPL_AGREEMENT_ABI, provider);
   const a = await ag.getAgreement();
@@ -104,14 +142,41 @@ export async function readAgreement(addr: string) {
 export async function repayInstallment(agreement: string, installmentId: number) {
   const provider = getBrowserProvider();
   const signer = await provider.getSigner();
+  // Demo mode path
+  if ((window as any).VITE_MORPHCREDIT_DEMO_MODE || import.meta.env.VITE_MORPHCREDIT_DEMO_MODE) {
+    const owner = await signer.getAddress();
+    const key = `mc_demo_agreements_${owner.toLowerCase()}`;
+    const raw = localStorage.getItem(key) || '[]';
+    const list = JSON.parse(raw) as any[];
+    const idx = list.findIndex((d) => d.id.toLowerCase() === agreement.toLowerCase());
+    if (idx >= 0) {
+      const item = list[idx];
+      const inst = item.installments?.[installmentId];
+      if (!inst) throw new Error('Invalid installment');
+      if (inst.isPaid) throw new Error('Installment already paid');
+      // simulate penalty and tx
+      inst.isPaid = true;
+      inst.paidAt = Math.floor(Date.now() / 1000);
+      item.agreement.paidInstallments = (Number(item.agreement.paidInstallments) || 0) + 1;
+      item.agreement.lastPaymentDate = inst.paidAt;
+      if (item.agreement.paidInstallments >= Number(item.agreement.installments)) {
+        item.agreement.status = 2; // Completed
+      }
+      localStorage.setItem(key, JSON.stringify(list));
+      // fake tx hash
+      const fake = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
+      // wait a moment to look real
+      await new Promise((r) => setTimeout(r, 1200));
+      return fake;
+    }
+  }
+  // Live path
   const ag = new ethers.Contract(agreement, BNPL_AGREEMENT_ABI, signer);
-  // figure out amount
   const all = await ag.getAllInstallments();
   const inst = all[installmentId];
   if (!inst) throw new Error('Invalid installment');
   const penalty: bigint = await ag.calculatePenalty(installmentId);
   const total = BigInt(inst.amount) + penalty;
-  // approve on mock stable
   if (!contractAddresses.mockStable) throw new Error('Stable token address missing');
   const erc20 = new ethers.Contract(contractAddresses.mockStable, ERC20_ABI, signer);
   const owner = await signer.getAddress();
