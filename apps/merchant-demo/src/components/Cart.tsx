@@ -188,7 +188,8 @@ export const Cart: React.FC<CartProps> = ({
         const key = `mc_demo_agreements_${address.toLowerCase()}`;
         const list = JSON.parse(localStorage.getItem(key) || '[]');
         list.push(demo);
-        localStorage.setItem(key, JSON.stringify(list));
+        const replacer = (_k: string, v: any) => typeof v === 'bigint' ? v.toString() : v;
+        localStorage.setItem(key, JSON.stringify(list, replacer));
         await new Promise((r) => setTimeout(r, 1400));
         handleSuccess({ txHash, agreementId, success: true, blockNumber: 0, gasUsed: 0n as any, gasPrice: 0n as any } as unknown as TxResult);
         return;

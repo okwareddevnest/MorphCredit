@@ -127,7 +127,24 @@ export async function readAgreement(addr: string) {
         const demo: any[] = JSON.parse(raw);
         const found = demo.find(d => d.id.toLowerCase() === addr.toLowerCase());
         if (found) {
-          return { agreement: found.agreement, installments: found.installments };
+          // revive bigints serialized as strings
+          const revive = (x: any) => {
+            if (x && typeof x === 'object') {
+              for (const k of Object.keys(x)) {
+                const v = (x as any)[k];
+                if (typeof v === 'string' && /^\d+$/.test(v)) {
+                  // large numeric fields we expect as bigint
+                  if (['principal','installmentAmount','amount','penaltyAccrued'].includes(k)) {
+                    (x as any)[k] = BigInt(v);
+                  }
+                } else if (v && typeof v === 'object') {
+                  revive(v);
+                }
+              }
+            }
+            return x;
+          };
+          return { agreement: revive(found.agreement), installments: revive(found.installments) };
         }
       }
     } catch {}
